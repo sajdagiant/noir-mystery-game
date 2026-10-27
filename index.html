@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0c"><title>NOIR — The Case Files</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 10 10%27%3E%3Ctext y=%278.5%27 font-size=%278%27%3E%F0%9F%95%B5%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="blinds"></div><div class="rain"></div>
+<header><div class="logo">NOIR<span>/ the case files</span></div><div class="hdr-r"><span id="mode" class="badge">…</span><button id="newBtn" class="ghost" hidden>New case</button></div></header>
+
+<main id="title" class="title">
+  <div class="tcard">
+    <p class="kicker">The city never sleeps. Neither do you.</p>
+    <h1>Who<br>killed<br><em>the night?</em></h1>
+    <p class="sub">A fresh murder every run. Four suspects who improvise. One liar. Find the truth, then name them.</p>
+    <button id="startBtn" class="cta">Open a case</button>
+  </div>
+</main>
+
+<main id="game" hidden>
+  <div class="layout">
+    <section class="col-l">
+      <div class="panel" data-tab="scene" id="scene">
+        <div class="brief" id="brief"></div>
+        <h3>Examine the scene</h3><div class="locs" id="locs"></div>
+      </div>
+      <div class="panel" data-tab="evidence" id="evidence">
+        <h3>Evidence <small id="evCount"></small></h3><div id="evList" class="evlist"><p class="muted">Nothing yet. Search the scene.</p></div>
+      </div>
+    </section>
+    <section class="col-r">
+      <div class="panel" data-tab="suspects" id="suspects">
+        <h3>Suspects</h3><div class="cards" id="cards"></div>
+        <div id="interview" class="interview" hidden>
+          <div class="ihead"><div class="avatar" id="iav"></div><div><b id="iname"></b><div class="muted" id="irel"></div></div><button id="accuseBtn" class="danger">Accuse</button></div>
+          <div class="log" id="log" aria-live="polite"></div>
+          <div class="chips" id="chips"></div>
+          <form id="askForm"><select id="evSel" aria-label="Present evidence"><option value="">— Present evidence —</option></select>
+          <div class="row"><input id="q" maxlength="300" autocomplete="off" placeholder="Ask anything…"><button class="cta sm" id="askBtn">Ask</button></div></form>
+        </div>
+      </div>
+    </section>
+  </div>
+  <nav class="tabs"><button data-go="scene" class="on">Scene</button><button data-go="evidence">Evidence <i id="evBadge"></i></button><button data-go="suspects">Suspects</button></nav>
+</main>
+
+<div id="modal" class="modal" hidden><div class="mbox">
+  <h2>Accuse <span id="mName"></span>?</h2><p class="muted">Pick the motive. Get both right to close the case. There is no second try.</p>
+  <div id="mOpts" class="opts"></div><div class="row"><button id="mCancel" class="ghost">Not yet</button><button id="mGo" class="danger" disabled>Make the accusation</button></div>
+</div></div>
+
+<div id="result" class="modal" hidden><div class="mbox big" id="resBox"></div></div>
+<script src="game.js"></script><script src="local-api.js"></script><script src="app.js"></script></body></html>
