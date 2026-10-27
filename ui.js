@@ -15,6 +15,38 @@ const store = {
 };
 const today = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 
+/* ---------- palette ---------- */
+const PAL_KEYS = ['bg', 'panel', 'line', 'fg', 'mut', 'acc', 'acc2', 'gold'];
+function setPal(p) { const r = document.documentElement.style; PAL_KEYS.forEach(k => { if (p && p[k]) r.setProperty('--' + k, p[k]); else r.removeProperty('--' + k); });
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', (p && p.bg) || '#0d0912'); }
+
+/* ---------- haptics ---------- */
+// Android: navigator.vibrate patterns. iOS Safari has no vibrate API, but a real tap that toggles an <input type=checkbox switch>
+// gives the native haptic tick (iOS 17.4+). So on iOS every button gets an invisible switch-label overlay; only genuine taps trigger it.
+const UA = navigator.userAgent || '';
+const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const canVib = typeof navigator.vibrate === 'function';
+const Hap = { on: store.get('hap', true) && (isIOS || canVib), last: 0, can: isIOS || canVib };
+const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40] };
+function hap(kind) {
+  if (!Hap.on || !canVib || isIOS) return; const n = performance.now();
+  if (kind === 'tap' && n - Hap.last < 60) return; Hap.last = n;
+  try { navigator.vibrate(PAT[kind] || PAT.tap); } catch (e) {}
+}
+function hapArm(b) {
+  if (!isIOS || b.querySelector(':scope > label[data-hap]')) return;
+  if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+  const lab = document.createElement('label'); lab.setAttribute('data-hap', ''); lab.setAttribute('aria-hidden', 'true');
+  const inp = document.createElement('input'); inp.type = 'checkbox'; inp.tabIndex = -1; if (Hap.on) inp.setAttribute('switch', '');
+  inp.addEventListener('click', e => e.stopPropagation()); lab.appendChild(inp); b.appendChild(lab);
+  // let the switch toggle (and tick) before the handler re-renders this button away; gesture-critical buttons (audio, share) run inline
+  lab.addEventListener('click', e => { if (!Hap.on || b.hasAttribute('data-now')) return; e.stopPropagation(); setTimeout(() => { if (b.isConnected && !b.disabled) b.click(); }, 0); });
+}
+function hapSync() { $$('label[data-hap] input').forEach(i => { if (Hap.on) i.setAttribute('switch', ''); else i.removeAttribute('switch'); }); store.set('hap', Hap.on); $$('[data-haptgl]').forEach(b => { b.classList.toggle('on', Hap.on); b.firstChild.textContent = '📳 Haptics ' + (Hap.on ? 'on' : 'off'); }); }
+function setHap(v) { Hap.on = !!v && Hap.can; hapSync(); if (Hap.on && canVib && !isIOS) try { navigator.vibrate(18); } catch (e) {} }
+if (isIOS) { const arm = () => $$('button').forEach(hapArm); new MutationObserver(arm).observe(document.body, { childList: true, subtree: true }); arm(); }
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) hap('tap'); }, true);
+
 /* ---------- fx ---------- */
 const flashEl = $('#flash');
 window.NoirFx = { flash() { flashEl.classList.add('on'); setTimeout(() => flashEl.classList.remove('on'), 90); setTimeout(() => { flashEl.classList.add('on'); setTimeout(() => flashEl.classList.remove('on'), 60); }, 190); } };
@@ -52,15 +84,18 @@ function modal(html, onShow) {
 function showTitle() {
   over = false; $('#hud').hidden = true; $('#game').hidden = true; $('#intro').hidden = true; $('#interview').hidden = true; $('#result').hidden = true; $('#modal').hidden = true; $('#sheet').hidden = true;
   const st = store.get('stats', { played: 0, solved: 0, best: 0, streak: 0 }), dl = store.get('daily', {}), friend = (location.search.match(/[?&]c=(\d+)/) || [])[1];
-  const t = $('#title'); t.hidden = false; t.scrollTop = 0;
+  const t = $('#title'); t.hidden = false; t.scrollTop = 0; setPal(null); if (S.setScene) S.setScene('title');
   t.innerHTML = `<div class="tbanner">${A.skyline('title', '#ff3d7f', ['#1a0b1a', '#0b0710'], 'club', 400, 210)}</div>
   <div class="tcard"><p class="kicker">A five-minute murder</p><h1 class="logo">NOIR<small>last call</small></h1>
   <p class="sub">Four suspects. Four lies. One night, one clock, and the rain won't quit.</p>
-  ${friend ? `<button class="cta" id="bFriend">Play case #${esc(friend)}<small>a friend sent you this one</small></button>` : ''}
-  <button class="cta ${friend ? 'alt' : ''}" id="bPlay">${friend ? 'Random case' : 'Open a case'}<small>${friend ? '' : 'a fresh murder every time'}</small></button>
-  <button class="cta alt" id="bDaily">📅 Today's case ${dl.date === today() ? '· ' + (dl.win ? '✓ ' + dl.rank : 'tried') : ''}</button>
-  <ul class="how"><li><b>Search</b> rooms for evidence. Each move burns 15 minutes. Dawn is your deadline.</li><li><b>Everyone lies</b> about where they were. Show the right evidence to break a lie. Wrong guesses cost double.</li><li>Cracked liars talk. Find who has <b>no alibi</b>, then accuse them with proof.</li></ul>
+  ${friend ? `<button class="cta" id="bFriend" data-now>Play case #${esc(friend)}<small>a friend sent you this one</small></button>` : ''}
+  <button class="cta ${friend ? 'alt' : ''}" id="bPlay" data-now>${friend ? 'Random case' : 'Open a case'}<small>${friend ? '' : 'a fresh murder every time'}</small></button>
+  <button class="cta alt" id="bDaily" data-now>📅 Today's case ${dl.date === today() ? '· ' + (dl.win ? '✓ ' + dl.rank : 'tried') : ''}</button>
+  <div class="toggles"><button class="tg ${S.isOn() ? 'on' : ''}" id="tSnd" data-now>${S.isOn() ? '🔊 Sound on' : '🔇 Sound off'}</button>${Hap.can ? `<button class="tg" data-haptgl>📳 Haptics</button>` : ''}</div>
+  <ul class="how"><li><b>Search</b> rooms for evidence. Each move burns 15 minutes. Dawn is your deadline.</li><li><b>Everyone lies</b>. Show the right evidence to break a lie. Wrong guesses cost double.</li><li>Cracked liars talk. But an alibi that checks out can still be a lie, and the obvious clue can be a plant. Trust nothing, not even the clock.</li></ul>
   <div class="stats">${st.played ? `CASES ${st.played} · SOLVED ${st.solved} · BEST ${st.best} · STREAK ${st.streak}` : 'NO CASES YET. THE CITY IS WAITING.'}</div></div>`;
+  $('#tSnd').onclick = () => { S.start(); S.setOn(!S.isOn()); const b = $('#tSnd'); b.classList.toggle('on', S.isOn()); b.firstChild.textContent = S.isOn() ? '🔊 Sound on' : '🔇 Sound off'; };
+  $$('[data-haptgl]').forEach(b => b.onclick = () => setHap(!Hap.on)); hapSync();
   const go = (sd, dly) => { S.start(); S.setOn(S.isOn()); newGame(sd, dly); };
   if (friend) $('#bFriend').onclick = () => go(+friend, false);
   $('#bPlay').onclick = () => go(1000 + Math.floor(Math.random() * 90000), false);
@@ -70,7 +105,7 @@ function showTitle() {
 /* ---------- game start ---------- */
 function newGame(sd, dly) {
   seed = sd; daily = !!dly; G = E.newCase(sd); logs = {}; armed = null; cur = null; busy = false; boardNew = 0; over = false;
-  document.documentElement.style.setProperty('--acc', G.st.accent);
+  setPal(G.st.pal || { acc: G.st.accent }); if (S.setScene) S.setScene(G.st.id);
   $('#title').hidden = true; $('#result').hidden = true; $('#game').hidden = true; $('#hud').hidden = true;
   const it = $('#intro'); it.hidden = false; it.className = 'screen intro'; it.scrollTop = 0;
   const caseLabel = daily ? 'DAILY ' + String(sd).slice(4, 6) + '/' + String(sd).slice(6) : '#' + sd;
@@ -96,14 +131,14 @@ function updateHud(beat) {
   $('#hudLeft').textContent = left + ' moves left';
   $('#hudCase').textContent = daily ? 'DAILY' : '#' + seed;
   $('#sndBtn').textContent = S.isOn() ? '🔊' : '🔇';
-  S.sfx.setTension(left <= 4 ? 1 : 0);
-  if (beat && left <= 3 && left > 0) S.sfx.heart();
+  S.sfx.setTension(Math.max(0, Math.min(1, (10 - left) / 9)));
+  if (beat && left <= 3 && left > 0) { S.sfx.heart(); hap('beat'); }
   $('#boardBadge').textContent = boardNew || ''; $('#boardBadge').classList.toggle('on', boardNew > 0 && view !== 'board');
 }
 $('#sndBtn').onclick = () => { S.start(); S.setOn(!S.isOn()); updateHud(); };
 $('#menuBtn').onclick = async () => {
-  const r = await modal(`<div class="dark"><h3 style="color:var(--fg)">PAUSED</h3><ul class="ul"><li><b>Search</b> rooms. Each move costs 15 min.</li><li>Show evidence to <b>break lies</b>. Wrong guess = 2 moves.</li><li>Cracked liars give <b>testimony</b>. Use it on others.</li><li>Find who has <b>no alibi</b>. Accuse with proof.</li></ul><button class="btn" data-r="x">Back to the case</button><button class="btn alt" data-r="re">Restart this case</button><button class="btn alt" data-r="q">Quit to title</button></div>`);
-  if (r === 're') newGame(seed, daily); else if (r === 'q') showTitle();
+  const r = await modal(`<div class="dark"><h3 style="color:var(--fg)">PAUSED</h3><ul class="ul"><li><b>Search</b> rooms. Each move costs 15 min.</li><li>Show evidence to <b>break lies</b>. Wrong guess = 2 moves.</li><li>Cracked liars give <b>testimony</b>. Use it on others.</li><li>Find who has <b>no alibi</b>. Accuse with proof.</li></ul><button class="btn" data-r="x">Back to the case</button><button class="btn alt" data-r="snd" data-now>${S.isOn() ? '🔇 Sound off' : '🔊 Sound on'}</button>${Hap.can ? `<button class="btn alt" data-r="hap">📳 Haptics ${Hap.on ? 'off' : 'on'}</button>` : ''}<button class="btn alt" data-r="re">Restart this case</button><button class="btn alt" data-r="q">Quit to title</button></div>`);
+  if (r === 're') newGame(seed, daily); else if (r === 'q') showTitle(); else if (r === 'snd') { S.start(); S.setOn(!S.isOn()); updateHud(); } else if (r === 'hap') setHap(!Hap.on);
 };
 
 /* ---------- nav & rendering ---------- */
@@ -116,7 +151,7 @@ $$('#nav button').forEach(b => b.onclick = () => { S.sfx.tap(); setView(b.datase
 function renderAll() { if (!G) return; if (view === 'scene') renderScene(); else if (view === 'suspects') renderSuspects(); else renderBoard(); updateHud(); }
 function chipFor(i) {
   if (G.conf && G.conf.idx === i && !G.stmts[G.conf.id].broken) return ['warn', '⚠ Confessed'];
-  const s = G.status[i]; return s === 'holds' ? ['ok', '✓ Alibi holds'] : s === 'collapsed' ? ['bad', '✗ No alibi'] : s === 'pending' ? ['pend', '… Needs confirming'] : ['', 'Alibi unchecked'];
+  const s = G.status[i]; return s === 'holds' ? ['ok', '✓ Alibi checks out'] : s === 'collapsed' ? ['bad', '✗ Alibi broken'] : s === 'pending' ? ['pend', '… Needs a witness'] : ['', 'Story unchecked'];
 }
 function tipText() {
   const searched = Object.keys(G.searched).length, met = Object.keys(G.met).length;
@@ -149,19 +184,19 @@ function renderBoard() {
     const [c, tx] = chipFor(p.idx), sts = E.statementsFor(G, p.idx);
     h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
     if (!G.met[p.idx]) h += `<div class="dos">Not interviewed yet. Tap to meet.</div>`;
-    sts.forEach(s => { h += `<button class="note ${s.kind === 'confession' ? 'conf' : ''} ${s.broken ? 'broken' : ''} ${armed && !s.broken ? 'armed-t' : ''}" data-s="${s.id}"><span class="k">${s.kind === 'confession' ? 'Confession' : 'Alibi claim'}</span><span class="tx">“${esc(s.text)}”</span>${s.broken ? `<span class="lie">LIE</span><span class="by">🧵 Broken by: ${esc(G.clues[s.brokenBy].title)}</span>` : ''}</button>`; });
+    sts.forEach(s => { h += `<button class="note ${s.kind === 'confession' ? 'conf' : s.kind} ${s.broken ? 'broken' : ''} ${armed && !s.broken ? 'armed-t' : ''}" data-s="${s.id}"><span class="k">${({ confession: 'Confession', call: 'Phone alibi', alone: 'Admission' })[s.kind] || 'Alibi claim'}</span><span class="tx">“${esc(s.text)}”</span>${s.broken ? `<span class="lie">LIE</span><span class="by">🧵 Broken by: ${esc(G.clues[s.brokenBy].title)}</span>` : ''}</button>`; });
     if (G.notes[p.idx].length) h += `<div class="dos"><ul>${G.notes[p.idx].map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`;
     h += `</div></div>`;
   });
   h += `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
   $('#v-board').innerHTML = h;
-  $$('#v-board .pin').forEach(b => b.onclick = () => { S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
+  $$('#v-board .pin').forEach(b => b.onclick = () => { if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
   $$('#v-board .fh').forEach(b => b.onclick = () => openInterview(+b.dataset.i));
   $$('#v-board .note').forEach(b => b.onclick = () => {
     const s = G.stmts[b.dataset.s];
     if (!armed) return toast('Tap a clue above first.');
     if (s.broken) return toast('That lie is already broken.');
-    const c = armed; armed = null; openInterview(s.who, c);
+    const c = armed; armed = null; S.sfx.link(); hap('link'); openInterview(s.who, c);
   });
   $('#hintBtn2').onclick = doHint;
 }
@@ -197,11 +232,11 @@ async function afterAction(events) {
 }
 async function showEvent(e) {
   if (e.type === 'body') {
-    S.sfx.sting(); S.sfx.thunder(true); document.body.classList.add('redflash'); setTimeout(() => document.body.classList.remove('redflash'), 700);
+    S.sfx.sting(); S.sfx.thunder(true); hap('heavy'); document.body.classList.add('redflash'); setTimeout(() => document.body.classList.remove('redflash'), 700);
     boardNew++;
     await modal(`<div class="dark red"><h3>A SECOND BODY</h3><p id="evTx"></p><ul class="ul"><li>The Commissioner's men trample the scene: <b>−1 move</b>.</li><li>New lead: the <b>${esc(G.st.exit.name)}</b>.</li></ul><button class="btn" data-r="ok">Go see it</button></div>`, () => typeText($('#evTx'), e.text, 16));
   } else if (e.type === 'confession') {
-    const p = G.people[e.idx]; S.sfx.sting(); boardNew++;
+    const p = G.people[e.idx]; S.sfx.sting(); hap('heavy'); boardNew++;
     addLog(e.idx, 's', e.text, 'nervous');
     await modal(`<div class="dark red"><h3>CONFESSION</h3><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: 'nervous', nerve: 3, label: p.name })}</div><b style="font:700 18px var(--serif)">${esc(p.name)}</b><p id="evTx" style="margin-top:10px"></p><ul class="ul"><li>Too easy. Too fast. Check it against the scene.</li></ul><button class="btn" data-r="ok">I'm not buying it</button></div>`, () => typeText($('#evTx'), '“' + e.text + '”', 16));
   } else if (e.type === 'dawn') {
@@ -284,11 +319,11 @@ async function doPresent(clueId) {
   updateHud(true);
   const pane = $('#interview');
   if (r.type === 'crack') {
-    S.sfx.sting(); document.body.classList.add('redflash'); pane.classList.add('shake'); const sf = $('#stampfx'); sf.hidden = false; sf.classList.remove('go'); void sf.offsetWidth; sf.classList.add('go');
-    try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch (e) {}
+    S.sfx.contra(); hap('crack'); document.body.classList.add('redflash'); pane.classList.add('shake'); const sf = $('#stampfx'); sf.hidden = false; sf.classList.remove('go'); void sf.offsetWidth; sf.classList.add('go');
     setPort(i, 'caught'); await sleep(FAST ? 0 : 900); sf.hidden = true; pane.classList.remove('shake'); document.body.classList.remove('redflash');
     boardNew += (r.newClues || []).length;
-  } else if (r.type === 'miss') { S.sfx.wrong(); pane.classList.add('shake'); setTimeout(() => pane.classList.remove('shake'), 450); toast('Wrong move. −2 moves', 'bad'); }
+  } else if (r.type === 'planted') { S.sfx.link(); hap('planted'); toast('A plant? Remember that smell.', 'good'); boardNew++;
+  } else if (r.type === 'miss') { S.sfx.wrong(); hap('miss'); pane.classList.add('shake'); setTimeout(() => pane.classList.remove('shake'), 450); toast('Wrong move. −2 moves', 'bad'); }
   await playLines(i, r.lines);
   renderIHead(); renderAll();
   if (r.type === 'crack') {
@@ -314,7 +349,7 @@ function openAccuse(forced) {
       sh.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { S.sfx.tap(); sel = +b.dataset.i; draw(); });
       sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.sfx.tap(); proof = b.dataset.p || null; draw(); });
       const c = $('#shCancel'); if (c) c.onclick = () => { sh.hidden = true; resolve(); };
-      $('#goAcc').onclick = () => { if (sel === null) return; sh.hidden = true; finish(sel, proof); resolve(); };
+      $('#goAcc').onclick = () => { if (sel === null) return; S.sfx.accuse(); hap('accuse'); sh.hidden = true; finish(sel, proof); resolve(); };
     };
     draw();
   });
@@ -333,13 +368,13 @@ async function showResult(res) {
   const R = $('#result'); R.hidden = false; R.scrollTop = 0; $('#hud').hidden = false; updateHud();
   const who = G.people[res.win ? res.killer : res.accused];
   R.innerHTML = `<div class="rport">${A.portrait(who.art, { accent: G.st.accent, mood: res.win ? 'caught' : 'smug', nerve: res.win ? 3 : 0, label: who.name })}</div><div class="rlog" id="rlog"></div><div id="rfin"></div>`;
-  S.sfx.sting(); S.sfx.thunder(true);
+  await sleep(FAST ? 0 : 1100); S.sfx.thunder(true);
   for (const l of res.lines) {
     const el = document.createElement('div'); el.className = 'msg ' + (l.k === 's' ? 's' + (res.win ? ' caught' : '') : 'n'); $('#rlog').appendChild(el); R.scrollTop = R.scrollHeight;
     if (l.k === 's') { const nm = G.people[l.idx].name; await typeText(el, nm + ': “' + l.text + '”', 14); } else { await typeText(el, l.text, 14); }
     await sleep(FAST ? 0 : 350);
   }
-  res.win ? S.sfx.win() : S.sfx.lose();
+  res.win ? S.sfx.win() : S.sfx.lose(); hap(res.win ? 'win' : 'lose');
   const shareUrl = location.origin + location.pathname + '?c=' + seed;
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
@@ -347,7 +382,7 @@ async function showResult(res) {
   ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
-  <button class="cta" id="bShare">📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
+  <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
   { const rc = R.querySelector('.rcard'); R.scrollTop = Math.max(0, rc.offsetTop - 12); }
   const sc = $('#scoreN'); const t0 = performance.now(); (function up(n) { const k = Math.min(1, (n - t0) / (FAST ? 1 : 900)); sc.textContent = Math.round(res.score * k).toLocaleString(); if (k < 1) requestAnimationFrame(up); })(t0);
   $('#bNext').onclick = () => newGame(1000 + Math.floor(Math.random() * 90000), false);
@@ -367,7 +402,7 @@ async function share(res, url) {
 function makeCard(res) {
   return new Promise(resolve => {
     const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
-    const g = x.createLinearGradient(0, 0, 0, 1350); g.addColorStop(0, '#1a0b1a'); g.addColorStop(1, '#07060b'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
+    const g = x.createLinearGradient(0, 0, 0, 1350); const P = G.st.pal || {}; g.addColorStop(0, P.panel || '#1a0b1a'); g.addColorStop(1, P.bg || '#07060b'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
     x.fillStyle = G.st.accent + '33'; x.beginPath(); x.arc(860, 220, 260, 0, 7); x.fill();
     x.textAlign = 'center'; x.fillStyle = '#f4ecd8'; x.font = '900 150px Georgia,serif'; x.fillText('NOIR', 540, 190); x.fillStyle = G.st.accent; x.font = 'italic 48px Georgia,serif'; x.fillText('last call', 540, 250);
     x.fillStyle = '#9b93a4'; x.font = '34px "Courier New",monospace'; x.fillText((daily ? 'DAILY CASE' : 'CASE #' + seed) + ' · ' + G.st.name.toUpperCase(), 540, 330);
@@ -388,6 +423,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, setView, get busy() { return busy; } };
+window.__noir = { get G() { return G; }, E, newGame, setView, get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

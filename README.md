@@ -4,9 +4,9 @@ A five-minute murder mystery that runs entirely in the browser. No server, no AI
 
 **Play:** https://sajdagiant.github.io/noir-mystery-game/
 
-- 4 settings, 16 suspects, a fresh killer, alibis, clues and twists every case. Share a case with `?c=1234`.
-- Search rooms, catch suspects in lies with evidence, crack testimony, find the one person with no alibi, accuse with proof.
-- Ticking clock (16 moves until dawn), false confessions, second bodies, hint line, ranks and a shareable result card.
-- Rain, thunder and a lazy noir combo are synthesized with WebAudio (works on iPhone with the silent switch on).
+- 5 settings (jazz club, manor, night train, arctic station, Studio Nine), 20 suspects, each with their own voice and their own lines when caught.
+- Three kinds of case: a plain liar, a frame-up (the obvious evidence is planted; follow the smell), and a staged clock (the alibi that "checks out" is the lie). Plus false confessions and second bodies.
+- Sound is all WebAudio: band-limited instruments, a different combo per setting, layered rain/wind/train, tension layers as dawn nears, tape wobble, EQ, saturation and reverb. Unlocks on iPhone even with the silent switch on.
+- Haptics: vibration patterns on Android, native taps on iPhone (iOS 17.4+), with a toggle on the title and in the menu.
 
-Files: `content.js` (all the writing), `engine.js` (pure rules/solvability), `art.js` (SVG portraits), `audio.js`, `ui.js`, `style.css`.
+Files: `content.js` (all the writing), `engine.js` (rules and solvability), `art.js` (SVG portraits), `audio.js`, `ui.js`, `style.css`.
