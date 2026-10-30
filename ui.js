@@ -27,10 +27,10 @@ const UA = navigator.userAgent || '';
 const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const canVib = typeof navigator.vibrate === 'function';
 const Hap = { on: store.get('hap', true) && (isIOS || canVib), last: 0, can: isIOS || canVib };
-const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40] };
+const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40], dust: 6, lift: [12, 40, 12, 40, 60] };
 function hap(kind) {
   if (!Hap.on || !canVib || isIOS) return; const n = performance.now();
-  if (kind === 'tap' && n - Hap.last < 60) return; Hap.last = n;
+  if ((kind === 'tap' && n - Hap.last < 60) || (kind === 'dust' && n - Hap.last < 90)) return; Hap.last = n;
   try { navigator.vibrate(PAT[kind] || PAT.tap); } catch (e) {}
 }
 function hapArm(b) {
@@ -104,7 +104,7 @@ function showTitle() {
 
 /* ---------- game start ---------- */
 function newGame(sd, dly) {
-  seed = sd; daily = !!dly; G = E.newCase(sd); logs = {}; armed = null; cur = null; busy = false; boardNew = 0; over = false;
+  seed = sd; daily = !!dly; G = E.newCase(sd); logs = {}; lifted = {}; armed = null; cur = null; busy = false; boardNew = 0; over = false;
   setPal(G.st.pal || { acc: G.st.accent }); if (S.setScene) S.setScene(G.st.id);
   $('#title').hidden = true; $('#result').hidden = true; $('#game').hidden = true; $('#hud').hidden = true;
   const it = $('#intro'); it.hidden = false; it.className = 'screen intro'; it.scrollTop = 0;
@@ -204,9 +204,49 @@ function renderBoard() {
 /* ---------- clues, search, hints ---------- */
 async function showClue(c, tag) {
   S.sfx.page(); S.sfx.chime();
-  const pr = modal(`<div class="paper"><div class="tag">${esc(tag || (c.kind === 'testimony' ? 'New testimony' : 'Evidence'))}</div><h3>${c.icon} ${esc(c.title)}</h3><p id="clueTx"></p><button class="btn" data-r="ok">${c.kind === 'testimony' ? 'Pin to the board' : 'Pin it to the board'}</button></div>`);
-  typeText($('#clueTx'), c.text, 11);
-  await pr;
+  const dust = !FAST && c.kind !== 'testimony' && !lifted[c.id] && !RM;
+  const pr = modal(`<div class="paper"><div class="tag">${esc(tag || (c.kind === 'testimony' ? 'New testimony' : 'Evidence'))}</div><h3>${c.icon} ${esc(c.title)}</h3>${dust ? `<div class="dustw" id="dustW"><p id="clueTx"></p><canvas class="dustc" id="dustC" aria-hidden="true"></canvas><canvas class="motec" id="moteC" aria-hidden="true"></canvas><div class="dusthint" id="dustHint"><b>🖌️</b>Brush the powder to lift the print</div><button class="blow" id="dustBlow" aria-label="Blow the powder away">💨</button></div>` : '<p id="clueTx"></p>'}<button class="btn" data-r="ok">${c.kind === 'testimony' ? 'Pin to the board' : 'Pin it to the board'}</button></div>`);
+  if (dust) { $('#clueTx').textContent = c.text; dustFor(c); } else typeText($('#clueTx'), c.text, 11);
+  await pr; if (dustStop) dustStop();
+}
+/* ---------- fingerprint dusting: every new piece of evidence arrives under graphite powder; brush it off with a finger ---------- */
+const RM = matchMedia('(prefers-reduced-motion:reduce)').matches; let lifted = {}, dustStop = null;
+function dustFor(c) {
+  const w = $('#dustW'), cv = $('#dustC'), mc = $('#moteC'), x = cv.getContext('2d'), mx = mc.getContext('2d');
+  const dpr = Math.min(2, devicePixelRatio || 1), W = Math.max(1, w.offsetWidth), H = Math.max(1, w.offsetHeight);
+  [cv, mc].forEach(k => { k.width = W * dpr; k.height = H * dpr; }); x.scale(dpr, dpr); mx.scale(dpr, dpr);
+  let h = 0; for (const ch of c.id + seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const rnd = E.mulberry ? E.mulberry(h) : Math.random;
+  // powder: graphite base, grain, smudges
+  const g0 = x.createLinearGradient(0, 0, W, H); g0.addColorStop(0, '#3b3a40'); g0.addColorStop(1, '#25242a'); x.fillStyle = g0; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < W * H / 22; i++) { const v = 40 + rnd() * 90 | 0; x.fillStyle = `rgba(${v},${v},${v + 8},${0.25 + rnd() * 0.4})`; x.fillRect(rnd() * W, rnd() * H, 1 + rnd() * 1.5, 1 + rnd() * 1.5); }
+  for (let i = 0; i < 6; i++) { const sx = rnd() * W, sy = rnd() * H, rg = x.createRadialGradient(sx, sy, 0, sx, sy, 30 + rnd() * 50); rg.addColorStop(0, 'rgba(15,14,18,.45)'); rg.addColorStop(1, 'rgba(15,14,18,0)'); x.fillStyle = rg; x.fillRect(0, 0, W, H); }
+  // the latent print: a whorl of broken silver ridges, different for every clue
+  const fx = W * (0.58 + rnd() * 0.22), fy = H * 0.5, sc = Math.min(1.1, H / 120), tilt = (rnd() - 0.5) * 0.7, wob = 2 + rnd() * 3, ph = rnd() * 6;
+  x.save(); x.translate(fx, fy); x.rotate(tilt); x.strokeStyle = 'rgba(214,214,226,.5)'; x.lineWidth = 1.6; x.lineCap = 'round';
+  for (let k = 0; k < 15; k++) { const rr = (5 + k * 4.2) * sc; x.beginPath(); let pen = false;
+    for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.06) { if (rnd() < 0.012) { pen = false; continue; } const q = rr + Math.sin(a * 3 + ph + k * 0.4) * wob * 0.35 * sc, px = Math.cos(a) * q * 0.8, py = Math.sin(a) * q * 1.12 - (a > 3.6 && a < 5.8 ? k * 0.6 * sc : 0); if (pen) x.lineTo(px, py); else { x.moveTo(px, py); pen = true; } }
+    x.stroke(); }
+  x.restore();
+  x.font = '700 9px ' + getComputedStyle(document.body).getPropertyValue('--sans'); x.fillStyle = 'rgba(214,214,226,.35)'; x.fillText('LATENT · ' + c.id.replace(/^c_/, '').toUpperCase() + '-' + (h % 9000 + 1000), 8, H - 8);
+  // brushing
+  let last = null, moved = 0, done = false, motes = [], raf = 0, hintGone = false;
+  const coverage = () => { const d = x.getImageData(0, 0, cv.width, cv.height).data; let s = 0, n = 0; for (let i = 3; i < d.length; i += 4 * 37) { n++; if (d[i] < 60) s++; } return s / n; };
+  const dab = (px, py, sp) => { const rad = 22 + Math.min(14, sp * 0.6), rg = x.createRadialGradient(px, py, 0, px, py, rad); rg.addColorStop(0, 'rgba(0,0,0,.85)'); rg.addColorStop(0.6, 'rgba(0,0,0,.4)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = rg; x.beginPath(); x.arc(px, py, rad, 0, Math.PI * 2); x.fill(); x.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 3; i++) motes.push({ x: px, y: py, vx: (rnd() - 0.5) * 3 + sp * 0.08, vy: -rnd() * 2.5, l: 1, s: 1 + rnd() * 2 }); if (!raf) raf = requestAnimationFrame(tick); };
+  const tick = () => { mx.clearRect(0, 0, W, H); motes = motes.filter(m => (m.l -= 0.03) > 0); motes.forEach(m => { m.x += m.vx; m.y += m.vy; m.vy += 0.12; mx.fillStyle = `rgba(70,68,78,${m.l})`; mx.fillRect(m.x, m.y, m.s, m.s); }); raf = motes.length ? requestAnimationFrame(tick) : 0; };
+  const pos = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * H / b.height]; };
+  const lift = (blown) => { if (done) return; done = true; lifted[c.id] = 1; const n = Object.keys(lifted).length; store.set('prints', store.get('prints', 0) + 1);
+    S.sfx.puff(); hap('lift'); w.classList.add('lifted'); if (blown) w.classList.add('blown');
+    const st = document.createElement('div'); st.className = 'printstamp'; st.innerHTML = `<span>PRINT LIFTED</span><small>#${n} tonight · ${store.get('prints', 1)} career</small>`; w.appendChild(st); };
+  const move = e => { if (done || !last) return; e.preventDefault(); const [px, py] = pos(e), dx = px - last[0], dy = py - last[1], d = Math.hypot(dx, dy); if (d < 1.5) return;
+    for (let k = 0; k <= d; k += 7) dab(last[0] + dx * k / d, last[1] + dy * k / d, d); last = [px, py]; moved += d;
+    S.sfx.brush(d); hap('dust'); if (!hintGone) { hintGone = true; $('#dustHint').classList.add('gone'); }
+    if (moved > 120) { moved = 0; if (coverage() > 0.55) lift(false); } };
+  cv.addEventListener('pointerdown', e => { if (done) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} last = pos(e); dab(last[0], last[1], 0); S.sfx.brush(1); });
+  cv.addEventListener('pointermove', move); ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => cv.addEventListener(k, () => { last = null; }));
+  $('#dustBlow').onclick = () => lift(true);
+  dustStop = () => { cancelAnimationFrame(raf); dustStop = null; if (!done) lifted[c.id] = 1; };
 }
 async function doSearch(id) {
   if (busy || G.over) return;

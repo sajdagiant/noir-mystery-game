@@ -221,7 +221,7 @@ function thunder(big) {
   chain(s, f, g, sfxG); s.start(t, Math.random()); s.stop(t + 5);
 }
 /* ---------- sfx ---------- */
-let lastTick = 0;
+let lastTick = 0, lastBrush = 0;
 const S = {
   type() { if (!ctx || !on) return; const n = now(); if (n - lastTick < 0.05) return; lastTick = n; noiseHit(n, WN, 'bandpass', 2600 + Math.random() * 900, 3, 0.05, 0.025, sfxG); },
   tap() { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'bandpass', 1800, 6, 0.08, 0.03, sfxG); const g = ctx.createGain(); env(g, t, 0.002, 0.05, 0.02, 0.04); chain(osc('sine', 660, t, t + 0.2), g, sfxG); },
@@ -244,6 +244,10 @@ const S = {
   heart() { if (!ctx || !on) return; heartAt(now(), 0.6); },
   win() { if (!ctx || !on) return; const t = now(); [62, 66, 69, 74, 78].forEach((m, i) => ep(t + i * 0.11, m, 0.09, 2.4, sfxG)); },
   lose() { if (!ctx || !on) return; const t = now(); [57, 54, 50, 45].forEach((m, i) => lead(t + i * 0.3, m, 0.09, 0.5, 'reed', 1100, true)); },
+  // fingerprint duster: soft bristle swish (throttled), and the puff when the print lifts
+  brush(v) { if (!ctx || !on) return; const n = now(); if (n - lastBrush < 0.045) return; lastBrush = n; noiseHit(n, PN, 'bandpass', 3200 + Math.random() * 2600, 1.2, 0.03 + Math.min(0.06, (v || 0) * 0.004), 0.07, sfxG, 1.2 + Math.random() * 0.5); },
+  puff() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 1400, 0.7, 0.22, 0.45, sfxG, 0.8); noiseHit(t + 0.05, WN, 'highpass', 5200, 0.6, 0.05, 0.35, sfxG);
+    [79, 86, 91].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.18 + i * 0.06, 0.004, 0.05, 0.12, 0.9); chain(osc('sine', mtof(m), t + 0.18 + i * 0.06, t + 2.4), g, sfxG); }); },
   page() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 2200, 0.8, 0.12, 0.18, sfxG, 1.4); },
   thunder, setTension,
 };
