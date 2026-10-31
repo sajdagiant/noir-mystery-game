@@ -91,6 +91,7 @@ function showTitle() {
   ${friend ? `<button class="cta" id="bFriend" data-now>Play case #${esc(friend)}<small>a friend sent you this one</small></button>` : ''}
   <button class="cta ${friend ? 'alt' : ''}" id="bPlay" data-now>${friend ? 'Random case' : 'Open a case'}<small>${friend ? '' : 'a fresh murder every time'}</small></button>
   <button class="cta alt" id="bDaily" data-now>📅 Today's case ${dl.date === today() ? '· ' + (dl.win ? '✓ ' + dl.rank : 'tried') : ''}</button>
+  ${isHalloween() ? `<div class="hallo">🎃 <b>Halloween night.</b> The dead are talking. Hold a <b>séance</b> in any case 👻</div>` : ''}
   <div class="toggles"><button class="tg ${S.isOn() ? 'on' : ''}" id="tSnd" data-now>${S.isOn() ? '🔊 Sound on' : '🔇 Sound off'}</button>${Hap.can ? `<button class="tg" data-haptgl>📳 Haptics</button>` : ''}</div>
   <ul class="how"><li><b>Search</b> rooms for evidence. Each move burns 15 minutes. Dawn is your deadline.</li><li><b>Everyone lies</b>. Show the right evidence to break a lie. Wrong guesses cost double.</li><li>Cracked liars talk. But an alibi that checks out can still be a lie, and the obvious clue can be a plant. Trust nothing, not even the clock.</li></ul>
   <div class="stats">${st.played ? `CASES ${st.played} · SOLVED ${st.solved} · BEST ${st.best} · STREAK ${st.streak}` : 'NO CASES YET. THE CITY IS WAITING.'}</div></div>`;
@@ -169,9 +170,9 @@ function renderScene() {
     const owner = G.people.find(p => p.place && p.place.id === l.id && G.met[p.idx]);
     const em = l.scene ? 'THE BODY · FREE' : l.searched ? 'SEARCHED ✓' : l.lead ? 'NEW LEAD · 1 MOVE' : (owner ? esc(owner.short.toUpperCase()) + '\'S ALIBI · 1 MOVE' : 'SEARCH · 1 MOVE');
     return `<button class="loc ${l.searched && !l.scene ? 'done' : ''} ${l.lead && !l.searched ? 'lead' : ''} ${first && l.scene ? 'start' : ''}" data-id="${l.id}"><span class="ic">${l.icon}</span><span><b>${esc(l.name)}</b><em>${em}</em></span></button>`; }).join('')}</div>
-  <button class="hintbtn" id="hintBtn">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  ${seanceBtn('seBtn')}<button class="hintbtn" id="hintBtn">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
   $$('#v-scene .loc').forEach(b => b.onclick = () => doSearch(b.dataset.id));
-  $('#hintBtn').onclick = doHint;
+  $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance;
 }
 function renderSuspects() {
   $('#v-suspects').innerHTML = `<div class="cards">${G.people.map(p => { const [c, tx] = chipFor(p.idx); return `<button class="sc" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: G.nerve[p.idx] >= 2 ? 'nervous' : 'neutral', nerve: G.nerve[p.idx], label: p.name })}${G.met[p.idx] ? '' : '<span class="new">NEW</span>'}</div><div class="inf"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span><span class="chip ${c}">${tx}</span></div></button>`; }).join('')}</div>`;
@@ -179,7 +180,7 @@ function renderSuspects() {
 }
 function renderBoard() {
   const clues = E.clueList(G);
-  let h = `<div class="cork"><div class="pinhint">${armed ? 'Now tap the statement it contradicts ↓' : 'Tap a clue, then tap the lie it breaks.'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pinhint" style="color:#f0e2c0;font-size:13px;margin-top:6px">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
+  let h = (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>Somebody in this room smells of it.</small></div></div>` : '') + `<div class="cork"><div class="pinhint">${armed ? 'Now tap the statement it contradicts ↓' : 'Tap a clue, then tap the lie it breaks.'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pinhint" style="color:#f0e2c0;font-size:13px;margin-top:6px">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
   G.people.forEach(p => {
     const [c, tx] = chipFor(p.idx), sts = E.statementsFor(G, p.idx);
     h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
@@ -188,7 +189,7 @@ function renderBoard() {
     if (G.notes[p.idx].length) h += `<div class="dos"><ul>${G.notes[p.idx].map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`;
     h += `</div></div>`;
   });
-  h += `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  h += seanceBtn('seBtn2') + `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
   $('#v-board').innerHTML = h;
   $$('#v-board .pin').forEach(b => b.onclick = () => { if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
   $$('#v-board .fh').forEach(b => b.onclick = () => openInterview(+b.dataset.i));
@@ -198,7 +199,7 @@ function renderBoard() {
     if (s.broken) return toast('That lie is already broken.');
     const c = armed; armed = null; S.sfx.link(); hap('link'); openInterview(s.who, c);
   });
-  $('#hintBtn2').onclick = doHint;
+  $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance;
 }
 
 /* ---------- clues, search, hints ---------- */
@@ -403,6 +404,85 @@ async function finish(idx, proof) {
   showResult(res); busy = false;
 }
 
+
+/* ---------- séance: the victim's ghost drags a planchette across a spirit board and spells one true word ---------- */
+const isHalloween = () => { const d = new Date(); return (d.getMonth() === 9 && d.getDate() >= 30) || (d.getMonth() === 10 && d.getDate() === 1) || /[?&]halloween\b/.test(location.search); };
+function seanceBtn(id) {
+  return G.seanceWord ? `<button class="sebtn used" id="${id}"><span>👻</span><span><b>The spirit spelled: ${esc(G.seanceWord)}</b><small>Who smells of it? Check their notes.</small></span></button>`
+    : `<button class="sebtn" id="${id}"><span>🔮</span><span><b>Hold a séance</b><small>Ask ${esc(G.V.short)} who did it · ${E.SEANCE_COST} moves · −100 pts · once</small></span></button>`;
+}
+const BOARD = (() => { const P = {}, arc = (str, y0, depth, x0, x1) => { const n = str.length; for (let i = 0; i < n; i++) { const k = i / (n - 1); P[str[i]] = [x0 + (x1 - x0) * k, y0 + depth * (1 - Math.sin(Math.PI * k))]; } };
+  arc('ABCDEFGHIJKLM', 30, 9, 7, 93); arc('NOPQRSTUVWXYZ', 52, 9, 9, 91); arc('1234567890', 76, 0, 18, 82);
+  P.YES = [13, 10]; P.NO = [87, 10]; P.GOODBYE = [50, 91]; P[' '] = [50, 64]; return P; })();
+async function doSeance() {
+  if (busy || G.over) return;
+  if (G.seanceWord) { S.sfx.tap(); return toast('👻 ' + G.V.short + ' already said: ' + G.seanceWord); }
+  const ok = await modal(`<div class="dark seancepre"><div class="crystal">🔮</div><h3>A SÉANCE?</h3><p>Madame Ostrova keeps a spirit board in her handbag and a candle in her coat. ${esc(G.V.short)} can't name a name. The dead never can. But they remember what was on the air.</p><ul class="ul"><li>Costs <b>${E.SEANCE_COST} moves</b> and <b>100 points</b>. Once per case.</li><li>Rest a finger on the board. <b>Don't push.</b> Let ${esc(G.V.short)} move it.</li></ul><button class="btn" data-r="go">Light the candles</button><button class="btn alt" data-r="no">Leave the dead alone</button></div>`);
+  if (ok !== 'go') return;
+  busy = true; const r = E.seance(G); if (!r.ok) { busy = false; return; }
+  G.seanceWord = r.word; updateHud(true);
+  await runSeance(r);
+  renderAll();
+  await afterAction(r.events); busy = false;
+}
+function runSeance(r) {
+  return new Promise(done => {
+    const v = G.V, ov = document.createElement('div'); ov.className = 'seance'; ov.id = 'seance';
+    const letters = Object.keys(BOARD).filter(k => k.length === 1 && k !== ' ');
+    ov.innerHTML = `<div class="sfog"></div><div class="ghost" aria-hidden="true"><svg viewBox="0 0 120 150"><defs><radialGradient id="gG" cx="50%" cy="35%" r="65%"><stop offset="0" stop-color="#f4ecff" stop-opacity=".95"/><stop offset=".6" stop-color="#b9a4ff" stop-opacity=".55"/><stop offset="1" stop-color="#7a5cff" stop-opacity="0"/></radialGradient></defs><path d="M60 6C30 6 14 30 14 60v70l12-10 12 12 11-12 11 12 11-12 12 12 12-10V60C106 30 90 6 60 6z" fill="url(#gG)"/><ellipse cx="45" cy="56" rx="7" ry="10" fill="#140b24"/><ellipse cx="75" cy="56" rx="7" ry="10" fill="#140b24"/><ellipse cx="60" cy="84" rx="8" ry="11" fill="#140b24" opacity=".85"/></svg></div>
+      <div class="shead"><small>THE SÉANCE · ${esc(G.st.name)}</small><b>${esc(v.full)}</b><em>is listening</em></div>
+      <div class="spelled" id="spelled" aria-live="polite"></div>
+      <div class="oboard" id="oboard"><div class="sun">☀</div><div class="moon">☾</div>${letters.map(k => `<span class="ol" data-k="${k}" style="left:${BOARD[k][0]}%;top:${BOARD[k][1]}%">${k}</span>`).join('')}
+        <span class="ol w" data-k="YES" style="left:${BOARD.YES[0]}%;top:${BOARD.YES[1]}%">YES</span><span class="ol w" data-k="NO" style="left:${BOARD.NO[0]}%;top:${BOARD.NO[1]}%">NO</span><span class="ol w bye" data-k="GOODBYE" style="left:50%;top:${BOARD.GOODBYE[1]}%">GOODBYE</span>
+        <div class="planch" id="planch"><i></i></div></div>
+      <div class="shint" id="shint">☝️ Rest a finger on the board. Don't push.</div>
+      <div class="candles">${[0, 1, 2].map(i => `<div class="cdl" style="--d:${i * 0.37}s"><b></b><span></span></div>`).join('')}</div>`;
+    document.body.appendChild(ov); S.sfx.seance(true); S.sfx.thunder(false); hap('heavy');
+    const bd = $('#oboard'), pl = $('#planch'), sp = $('#spelled'), hint = $('#shint');
+    const word = r.word, seq = word.split('').concat(['GOODBYE']); let qi = 0, pos = [50, 66], vel = [0, 0], touch = false, dwell = 0, t0 = performance.now(), lastT = t0, raf = 0, shown = '', finished = false, idle = 0;
+    const auto = FAST || /[?&]autoseance\b/.test(location.search);
+    const place = () => { pl.style.left = pos[0] + '%'; pl.style.top = pos[1] + '%'; };
+    place();
+    const down = e => { e.preventDefault(); touch = true; ov.classList.add('touch'); try { bd.setPointerCapture(e.pointerId); } catch (_) {} hint.classList.add('gone'); hap('tap'); };
+    const up = () => { touch = false; ov.classList.remove('touch'); };
+    bd.addEventListener('pointerdown', down); ['pointerup', 'pointercancel'].forEach(k => bd.addEventListener(k, up));
+    const step = now => {
+      const dt = Math.min(50, now - lastT) / 1000; lastT = now; const T = (now - t0) / 1000;
+      const moving = touch || auto;
+      if (!moving) { idle += dt; if (idle > 5) { hint.classList.remove('gone'); hint.textContent = '☝️ ' + v.short + ' can\'t move it alone. Touch the board.'; } }
+      else idle = 0;
+      if (qi < seq.length) {
+        const tg = BOARD[seq[qi]], dx = tg[0] - pos[0], dy = tg[1] - pos[1], d = Math.hypot(dx, dy);
+        if (moving) {
+          if (d < 1.2) { dwell += dt; vel = [vel[0] * 0.7, vel[1] * 0.7];
+            if (dwell > (auto ? 0.05 : seq[qi] === ' ' ? 0.3 : 0.55)) { dwell = 0; const k = seq[qi]; qi++;
+              const el = bd.querySelector(`.ol[data-k="${k === ' ' ? '_' : k}"]`); if (el) { el.classList.remove('lit'); void el.offsetWidth; el.classList.add('lit'); }
+              if (k === 'GOODBYE') { finish(); } else { shown += k; sp.innerHTML = shown.split('').map((c, i) => `<b style="--i:${i}">${c === ' ' ? '&nbsp;' : c}</b>`).join(''); if (k !== ' ') { S.sfx.ting(qi); hap('lift'); } }
+            } }
+          else { const sp2 = (auto ? 260 : 46) * Math.min(1, d / 14 + 0.25), wob = auto ? 0 : 1; // the spirit's hand: eased glide with a wobble, sometimes it circles
+            const ax = dx / d * sp2 + Math.sin(T * 3.1 + qi) * 18 * wob, ay = dy / d * sp2 + Math.cos(T * 2.3 + qi * 2) * 14 * wob;
+            vel = [vel[0] + (ax - vel[0]) * Math.min(1, dt * 4), vel[1] + (ay - vel[1]) * Math.min(1, dt * 4)]; pos = [pos[0] + vel[0] * dt, pos[1] + vel[1] * dt]; }
+        } else { vel = [vel[0] * 0.9, vel[1] * 0.9]; pos = [pos[0] + Math.sin(T * 1.7) * 0.02, pos[1] + Math.cos(T * 1.3) * 0.02]; }
+        pos = [Math.max(4, Math.min(96, pos[0])), Math.max(6, Math.min(94, pos[1]))]; place();
+        S.sfx.theremin(pos[0] / 100, pos[1] / 100, moving ? 1 : 0.15);
+        ov.style.setProperty('--glow', (moving ? 0.55 + 0.25 * Math.sin(T * 6) : 0.25).toFixed(2));
+      }
+      if (!finished) raf = requestAnimationFrame(step);
+    };
+    const finish = () => {
+      finished = true; cancelAnimationFrame(raf); S.sfx.theremin(0.3, 0.5, 0); S.sfx.snuff(); hap('heavy'); ov.classList.add('out');
+      setTimeout(() => {
+        S.sfx.seance(false);
+        const card = document.createElement('div'); card.className = 'scard';
+        card.innerHTML = `<small>THE SPIRIT SPELLED</small><div class="sword">${esc(word)}</div><p>${esc(r.text)}</p><p class="sm">Every suspect smells of something. Match it. Then find proof the living will believe.</p><button class="btn" id="seDone">Back to the living</button>`;
+        ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on'));
+        $('#seDone').onclick = () => { S.sfx.tap(); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(); }, FAST ? 0 : 450); };
+      }, FAST ? 0 : 1500);
+    };
+    raf = requestAnimationFrame(step);
+  });
+}
+
 /* ---------- result ---------- */
 async function showResult(res) {
   const R = $('#result'); R.hidden = false; R.scrollTop = 0; $('#hud').hidden = false; updateHud();
@@ -419,7 +499,7 @@ async function showResult(res) {
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
   <div class="sgrid"><div><b>${res.stats.left}</b>moves left</div><div><b>${res.stats.cracks}</b>lies cracked</div><div><b>${res.stats.bluffs}</b>bad guesses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>proof</div></div>
-  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}
+  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
   <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;

@@ -319,6 +319,23 @@ function hint(g) {
   return { ok: true, cost: 1, text, events };
 }
 
+/* ---------- séance: once per case, the victim's ghost spells one true word on the spirit board ---------- */
+const SPIRIT = { 'lavender perfume': 'LAVENDER', 'bay rum': 'BAY RUM', 'cheap cigar smoke': 'CIGAR', 'peppermint': 'PEPPERMINT', 'lily-of-the-valley': 'LILY',
+  'ether and pipe tobacco': 'ETHER', 'lemon polish and woodsmoke': 'LEMON', 'whiskey and cheap cologne': 'WHISKEY', 'gardenia': 'GARDENIA', 'coal smoke and brass polish': 'COAL',
+  'clove cigarettes': 'CLOVE', 'good cigars and gun oil': 'GUN OIL', 'burnt coffee': 'COFFEE', 'antiseptic and menthol': 'ANTISEPTIC', 'diesel and onions': 'DIESEL',
+  'fountain-pen ink': 'INK', 'cold cream and Chanel': 'CHANEL', 'motor oil and spearmint gum': 'SPEARMINT', 'typewriter ribbon and gin': 'GIN', 'menthol cigarettes': 'MENTHOL' };
+function spiritWord(p) { return SPIRIT[p.trait] || p.trait.toUpperCase().replace(/[^A-Z ]/g, ' ').split(/\s+/).sort((a, b) => b.length - a.length)[0]; }
+const SEANCE_COST = 2;
+function seance(g) {
+  if (locked(g)) return { ok: false, error: 'dawn' };
+  if (g.seanced) return { ok: false, error: 'used' };
+  g.seanced = true;
+  const word = spiritWord(g.K);
+  const text = fill('{v} cannot name a name. The dead never can. But {v} remembers the last thing on the air before the dark: {w}.', { v: g.V.short, w: word.toLowerCase() });
+  const events = spend(g, SEANCE_COST);
+  return { ok: true, cost: SEANCE_COST, word, text, events };
+}
+
 /* ---------- accusation ---------- */
 function accuse(g, i, proofId) {
   if (g.over) return { ok: false, error: 'over' };
@@ -331,7 +348,7 @@ function accuse(g, i, proofId) {
   const left = g.max - g.t;
   let score = 0;
   if (win) {
-    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75
+    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0)
       + (g.confSeen && g.confBroken ? 100 : 0) + (g.variant === 'frame' && g.planted ? 60 : 0) + (g.variant === 'staged' && g.stmts['st_call_' + K.idx] && g.stmts['st_call_' + K.idx].broken ? 60 : 0);
     score = Math.max(100, score);
   } else score = clueList(g).length * 20;
@@ -360,10 +377,10 @@ function accuse(g, i, proofId) {
       x.role === 'L' ? 'Slipped out the ' + st.exit.name + ' at 10:28, after it was already done. Innocent, and very unlucky.' :
       'Was on a phone call from ' + st.callSpot + '.' + (g.F && g.F.idx === x.idx ? ' Framed.' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
-    stats: { cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
+    stats: { seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
 function clock(g) { return fmt(START + g.t * 15); }
 
-const API = { newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
+const API = { seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Noir = API;
 })(typeof window !== 'undefined' ? window : globalThis);

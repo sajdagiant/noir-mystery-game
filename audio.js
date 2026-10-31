@@ -221,7 +221,7 @@ function thunder(big) {
   chain(s, f, g, sfxG); s.start(t, Math.random()); s.stop(t + 5);
 }
 /* ---------- sfx ---------- */
-let lastTick = 0, lastBrush = 0;
+let lastTick = 0, lastBrush = 0, ther = null;
 const S = {
   type() { if (!ctx || !on) return; const n = now(); if (n - lastTick < 0.05) return; lastTick = n; noiseHit(n, WN, 'bandpass', 2600 + Math.random() * 900, 3, 0.05, 0.025, sfxG); },
   tap() { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'bandpass', 1800, 6, 0.08, 0.03, sfxG); const g = ctx.createGain(); env(g, t, 0.002, 0.05, 0.02, 0.04); chain(osc('sine', 660, t, t + 0.2), g, sfxG); },
@@ -249,6 +249,29 @@ const S = {
   puff() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 1400, 0.7, 0.22, 0.45, sfxG, 0.8); noiseHit(t + 0.05, WN, 'highpass', 5200, 0.6, 0.05, 0.35, sfxG);
     [79, 86, 91].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.18 + i * 0.06, 0.004, 0.05, 0.12, 0.9); chain(osc('sine', mtof(m), t + 0.18 + i * 0.06, t + 2.4), g, sfxG); }); },
   page() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 2200, 0.8, 0.12, 0.18, sfxG, 1.4); },
+  // séance: a theremin that follows the planchette, a hushed minor drone, glass tings on each letter, candles snuffed at the end
+  seance(onOff) { if (!ctx) return; const t = now();
+    if (onOff) {
+      if (ther) return; musG.gain.setTargetAtTime(0.12, t, 0.6); rainG.gain.setTargetAtTime(0.18, t, 0.8);
+      const g = ctx.createGain(); g.gain.value = 0.0001; const lp = biq('lowpass', 2600, 0.7), o = ctx.createOscillator(), o2 = ctx.createOscillator(), h = ctx.createGain(); h.gain.value = 0.18;
+      o.type = 'sine'; o2.type = 'triangle'; o.frequency.value = 440; o2.frequency.value = 880;
+      const vb = ctx.createOscillator(), vg = ctx.createGain(); vb.frequency.value = 5.4; vg.gain.value = 9; vb.connect(vg); vg.connect(o.frequency); vg.connect(o2.frequency);
+      o.connect(lp); chain(o2, h, lp); chain(lp, g, sfxG); o.start(t); o2.start(t); vb.start(t);
+      const dg = ctx.createGain(); dg.gain.value = 0.0001; dg.gain.setTargetAtTime(0.05, t, 1.5); const dl = biq('lowpass', 700, 0.6); chain(dl, dg, sfxG);
+      const drones = [38, 45, 50, 53].map((m, i) => { const d = osc('string', mtof(m), t, t + 600, i * 5 - 7); d.connect(dl); return d; });
+      ther = { g, o, o2, vb, dg, drones };
+    } else {
+      if (!ther) return; const T = ther; ther = null; musG.gain.setTargetAtTime(0.62, t, 1.2); rainG.gain.setTargetAtTime(0.5, t, 1.5);
+      T.g.gain.setTargetAtTime(0.0001, t, 0.15); T.dg.gain.setTargetAtTime(0.0001, t, 0.5);
+      setTimeout(() => { [T.o, T.o2, T.vb].concat(T.drones).forEach(x => { try { x.stop(); } catch (e) {} }); }, 3000);
+    } },
+  // x,y in 0..1 across the board; amp 0..1 (finger down = singing)
+  theremin(x, y, amp) { if (!ther || !on) return; const t = now(), f = 196 * Math.pow(2, x * 2.2 + (1 - y) * 0.6);
+    ther.o.frequency.setTargetAtTime(f, t, 0.09); ther.o2.frequency.setTargetAtTime(f * 2.003, t, 0.09); ther.g.gain.setTargetAtTime(Math.max(0.0001, (amp || 0) * 0.07), t, 0.12); },
+  ting(i) { if (!ctx || !on) return; const t = now(), m = [69, 72, 76, 77, 81, 84, 88][(i || 0) % 7]; bell(t, m, 0.05);
+    const g = ctx.createGain(); env(g, t, 0.002, 0.04, 0.05, 1.2); chain(osc('sine', mtof(m + 12), t, t + 3, 7), g, sfxG); },
+  snuff() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 900, 0.6, 0.35, 0.7, sfxG, 0.7); noiseHit(t + 0.1, WN, 'bandpass', 2400, 1, 0.06, 0.6, sfxG);
+    [45, 52, 56].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.3 + i * 0.12, 0.08, 0.05, 0.8, 1.4); chain(osc('choir', mtof(m), t + 0.3, t + 5, i * 5 - 5), biq('lowpass', 1600), g, sfxG); }); },
   thunder, setTension,
 };
 root.NoirSnd = { start, setOn, setScene, isOn: () => on, started: () => started, ctx: () => ctx, sfx: S, style: () => style };

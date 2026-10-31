@@ -8,6 +8,7 @@ A five-minute murder mystery that runs entirely in the browser. No server, no AI
 - Three kinds of case: a plain liar, a frame-up (the obvious evidence is planted; follow the smell), and a staged clock (the alibi that "checks out" is the lie). Plus false confessions and second bodies.
 - Sound is all WebAudio: band-limited instruments, a different combo per setting, layered rain/wind/train, tension layers as dawn nears, tape wobble, EQ, saturation and reverb. Unlocks on iPhone even with the silent switch on.
 - Fingerprint dusting: new evidence arrives under graphite powder. Drag a finger to brush it off and lift a latent print (or tap 💨 to blow it away).
+- Séance (once per case, 2 moves): rest a finger on the spirit board and the victim's ghost drags the planchette to spell one true word, the smell on the killer. A theremin follows the planchette; candles snuff out at GOODBYE.
 - Haptics: vibration patterns on Android, native taps on iPhone (iOS 17.4+), with a toggle on the title and in the menu.
 
 Files: `content.js` (all the writing), `engine.js` (rules and solvability), `art.js` (SVG portraits), `audio.js`, `ui.js`, `style.css`.
