@@ -221,7 +221,7 @@ function thunder(big) {
   chain(s, f, g, sfxG); s.start(t, Math.random()); s.stop(t + 5);
 }
 /* ---------- sfx ---------- */
-let lastTick = 0, lastBrush = 0, ther = null;
+let lastTick = 0, lastBrush = 0, ther = null, polyN = null;
 const S = {
   type() { if (!ctx || !on) return; const n = now(); if (n - lastTick < 0.05) return; lastTick = n; noiseHit(n, WN, 'bandpass', 2600 + Math.random() * 900, 3, 0.05, 0.025, sfxG); },
   tap() { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'bandpass', 1800, 6, 0.08, 0.03, sfxG); const g = ctx.createGain(); env(g, t, 0.002, 0.05, 0.02, 0.04); chain(osc('sine', 660, t, t + 0.2), g, sfxG); },
@@ -272,6 +272,29 @@ const S = {
     const g = ctx.createGain(); env(g, t, 0.002, 0.04, 0.05, 1.2); chain(osc('sine', mtof(m + 12), t, t + 3, 7), g, sfxG); },
   snuff() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 900, 0.6, 0.35, 0.7, sfxG, 0.7); noiseHit(t + 0.1, WN, 'bandpass', 2400, 1, 0.06, 0.6, sfxG);
     [45, 52, 56].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.3 + i * 0.12, 0.08, 0.05, 0.8, 1.4); chain(osc('choir', mtof(m), t + 0.3, t + 5, i * 5 - 5), biq('lowpass', 1600), g, sfxG); }); },
+  // the lie box: chart-motor hum + pen scratch while the paper rolls, heartbeats on every pulse, an alarm bell on a spike, a sinking tone when the needle goes flat
+  poly(onOff) { if (!ctx) return; const t = now();
+    if (onOff) {
+      if (polyN) return; musG.gain.setTargetAtTime(0.18, t, 0.5);
+      const mg = ctx.createGain(); mg.gain.value = 0.0001; const m1 = osc('sawtooth', 58, t, t + 900), m2 = osc('sawtooth', 116.7, t, t + 900), ml = biq('lowpass', 260, 2);
+      chain(m1, ml); chain(m2, ml); chain(ml, mg, sfxG);
+      const sc = loopSrc(PN, 1.6), sb = biq('bandpass', 4200, 2.2), sg = ctx.createGain(); sg.gain.value = 0.0001; chain(sc, biq('highpass', 1800), sb, sg, sfxG);
+      polyN = { mg, sg, sb, m1, m2, sc };
+    } else {
+      if (!polyN) return; const P = polyN; polyN = null; musG.gain.setTargetAtTime(0.62, t, 1);
+      P.mg.gain.setTargetAtTime(0.0001, t, 0.1); P.sg.gain.setTargetAtTime(0.0001, t, 0.05);
+      setTimeout(() => { [P.m1, P.m2, P.sc].forEach(x => { try { x.stop(); } catch (e) {} }); }, 800);
+    } },
+  // rolling 0/1, pen speed 0..1
+  polyRoll(rolling, speed) { if (!polyN || !on) return; const t = now();
+    polyN.mg.gain.setTargetAtTime(rolling ? 0.05 : 0.0001, t, rolling ? 0.08 : 0.15);
+    polyN.sg.gain.setTargetAtTime(rolling ? 0.015 + Math.min(1, speed || 0) * 0.11 : 0.0001, t, 0.03);
+    polyN.sb.frequency.setTargetAtTime(3200 + Math.min(1, speed || 0) * 3600, t, 0.05); },
+  beat(vol) { if (!ctx || !on) return; heartAt(now(), vol == null ? 0.5 : vol); },
+  polyAlarm() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 8; k++) { const g = ctx.createGain(), tt = t + k * 0.07; env(g, tt, 0.002, 0.05, 0.03, 0.12); chain(osc('square', mtof(k % 2 ? 84 : 88), tt, tt + 0.5), biq('lowpass', 3500), g, sfxG); }
+    noiseHit(t, WN, 'bandpass', 5200, 3, 0.12, 0.25, sfxG, 1.3); },
+  polyFlat() { if (!ctx || !on) return; const t = now(); [50, 49].forEach((m, i) => { const g = ctx.createGain(); env(g, t + i * 0.02, 0.4, 0.05, 1.6, 1.2); const o = osc('sine', mtof(m + 12), t, t + 5, i * 9); o.frequency.exponentialRampToValueAtTime(mtof(m + 5), t + 2.6); chain(o, g, sfxG); }); },
+  polyTrue() { if (!ctx || !on) return; const t = now(); [76, 81].forEach((m, i) => { const g = ctx.createGain(), tt = t + i * 0.09; env(g, tt, 0.002, 0.05, 0.05, 0.6); chain(osc('sine', mtof(m), tt, tt + 2), g, sfxG); }); },
   thunder, setTension,
 };
 root.NoirSnd = { start, setOn, setScene, isOn: () => on, started: () => started, ctx: () => ctx, sfx: S, style: () => style };

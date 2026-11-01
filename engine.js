@@ -336,6 +336,35 @@ function seance(g) {
   return { ok: true, cost: SEANCE_COST, word, text, events };
 }
 
+/* ---------- the lie box: a 1940s polygraph. Two strips of paper per case, one per suspect. ---------- */
+const POLY_MAX = 2;
+function polyLeft(g) { return POLY_MAX - Object.keys(g.poly || {}).length; }
+function polygraph(g, i) {
+  if (locked(g)) return { ok: false, error: 'dawn' };
+  const p = g.people[i]; if (!p || !g.met[i]) return { ok: false, error: 'unmet' };
+  g.poly = g.poly || {}; if (g.poly[i]) return { ok: false, error: 'done' };
+  if (polyLeft(g) < 1) return { ok: false, error: 'out' };
+  const claim = g.stmts['st_claim_' + i], call = g.stmts['st_call_' + i];
+  const confd = !!(g.conf && g.conf.idx === i && !g.stmts[g.conf.id].broken);
+  const storyLie = !claim.broken || !!(call && !call.broken) || confd;
+  const framed = !!(g.F && g.F.idx === i && g.found.c_N && !g.planted);
+  const murder = p.role === 'K' ? 'ice' : (g.nerve[i] >= 2 || framed || confd) ? 'jump' : 'true';
+  const qs = [
+    { id: 'name', q: 'Is your name ' + p.name + '?', r: 'true' },
+    { id: 'story', q: confd ? 'Is your confession the truth?' : call && !call.broken ? 'Were you on that phone call when ' + g.V.short + ' died?' : claim.broken ? 'Have you told me everything now?' : 'Were you in the ' + p.place.name + ' all night?', r: storyLie ? 'lie' : 'true' },
+    { id: 'kill', q: 'Did you kill ' + g.V.short + '?', r: murder },
+  ];
+  const bpm = p.role === 'K' ? 66 : 76 + Math.min(3, g.nerve[i]) * 7;
+  const say = { true: 'steady', lie: 'spiked', jump: 'went wild', ice: 'went dead flat' };
+  const verdict = murder === 'ice' ? fill('Asked if {p} killed {v}, the pulse pen went dead flat. Heart slowed down. The operator lights a cigarette: “Nobody is that calm about a murder.”', { p: p.short, v: g.V.short })
+    : murder === 'jump' ? fill('Asked about {v}, every pen jumped. Scared stiff. The operator shrugs: “Fear and guilt draw the same line, Detective.”', { v: g.V.short })
+    : fill('Asked about {v}, the pens barely moved. Sad, maybe. Not scared.', { v: g.V.short });
+  g.poly[i] = { qs, murder, story: storyLie, bpm };
+  addNote(g, i, '📈 Lie box: story ' + say[storyLie ? 'lie' : 'true'] + '; asked about the murder, the needle ' + say[murder] + '.', 'poly');
+  const events = spend(g, 1);
+  return { ok: true, cost: 1, qs, bpm, murder, story: storyLie, verdict, left: polyLeft(g), events };
+}
+
 /* ---------- accusation ---------- */
 function accuse(g, i, proofId) {
   if (g.over) return { ok: false, error: 'over' };
@@ -348,7 +377,7 @@ function accuse(g, i, proofId) {
   const left = g.max - g.t;
   let score = 0;
   if (win) {
-    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0)
+    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0) - Object.keys(g.poly || {}).length * 40
       + (g.confSeen && g.confBroken ? 100 : 0) + (g.variant === 'frame' && g.planted ? 60 : 0) + (g.variant === 'staged' && g.stmts['st_call_' + K.idx] && g.stmts['st_call_' + K.idx].broken ? 60 : 0);
     score = Math.max(100, score);
   } else score = clueList(g).length * 20;
@@ -377,10 +406,10 @@ function accuse(g, i, proofId) {
       x.role === 'L' ? 'Slipped out the ' + st.exit.name + ' at 10:28, after it was already done. Innocent, and very unlucky.' :
       'Was on a phone call from ' + st.callSpot + '.' + (g.F && g.F.idx === x.idx ? ' Framed.' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
-    stats: { seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
+    stats: { poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
 function clock(g) { return fmt(START + g.t * 15); }
 
-const API = { seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
+const API = { polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Noir = API;
 })(typeof window !== 'undefined' ? window : globalThis);

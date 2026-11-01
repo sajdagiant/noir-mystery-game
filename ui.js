@@ -27,10 +27,10 @@ const UA = navigator.userAgent || '';
 const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const canVib = typeof navigator.vibrate === 'function';
 const Hap = { on: store.get('hap', true) && (isIOS || canVib), last: 0, can: isIOS || canVib };
-const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40], dust: 6, lift: [12, 40, 12, 40, 60] };
+const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40], dust: 6, pulse: 7, lift: [12, 40, 12, 40, 60] };
 function hap(kind) {
   if (!Hap.on || !canVib || isIOS) return; const n = performance.now();
-  if ((kind === 'tap' && n - Hap.last < 60) || (kind === 'dust' && n - Hap.last < 90)) return; Hap.last = n;
+  if ((kind === 'tap' && n - Hap.last < 60) || (kind === 'dust' && n - Hap.last < 90) || (kind === 'pulse' && n - Hap.last < 200)) return; Hap.last = n;
   try { navigator.vibrate(PAT[kind] || PAT.tap); } catch (e) {}
 }
 function hapArm(b) {
@@ -91,6 +91,7 @@ function showTitle() {
   ${friend ? `<button class="cta" id="bFriend" data-now>Play case #${esc(friend)}<small>a friend sent you this one</small></button>` : ''}
   <button class="cta ${friend ? 'alt' : ''}" id="bPlay" data-now>${friend ? 'Random case' : 'Open a case'}<small>${friend ? '' : 'a fresh murder every time'}</small></button>
   <button class="cta alt" id="bDaily" data-now>📅 Today's case ${dl.date === today() ? '· ' + (dl.win ? '✓ ' + dl.rank : 'tried') : ''}</button>
+  <div class="hallo">📈 <b>New: the lie box.</b> Strap a suspect in, hold the lever, watch the needles.</div>
   ${isHalloween() ? `<div class="hallo">🎃 <b>Halloween night.</b> The dead are talking. Hold a <b>séance</b> in any case 👻</div>` : ''}
   <div class="toggles"><button class="tg ${S.isOn() ? 'on' : ''}" id="tSnd" data-now>${S.isOn() ? '🔊 Sound on' : '🔇 Sound off'}</button>${Hap.can ? `<button class="tg" data-haptgl>📳 Haptics</button>` : ''}</div>
   <ul class="how"><li><b>Search</b> rooms for evidence. Each move burns 15 minutes. Dawn is your deadline.</li><li><b>Everyone lies</b>. Show the right evidence to break a lie. Wrong guesses cost double.</li><li>Cracked liars talk. But an alibi that checks out can still be a lie, and the obvious clue can be a plant. Trust nothing, not even the clock.</li></ul>
@@ -105,7 +106,7 @@ function showTitle() {
 
 /* ---------- game start ---------- */
 function newGame(sd, dly) {
-  seed = sd; daily = !!dly; G = E.newCase(sd); logs = {}; lifted = {}; armed = null; cur = null; busy = false; boardNew = 0; over = false;
+  seed = sd; daily = !!dly; G = E.newCase(sd); G.polyStrip = {}; logs = {}; lifted = {}; armed = null; cur = null; busy = false; boardNew = 0; over = false;
   setPal(G.st.pal || { acc: G.st.accent }); if (S.setScene) S.setScene(G.st.id);
   $('#title').hidden = true; $('#result').hidden = true; $('#game').hidden = true; $('#hud').hidden = true;
   const it = $('#intro'); it.hidden = false; it.className = 'screen intro'; it.scrollTop = 0;
@@ -186,6 +187,7 @@ function renderBoard() {
     h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
     if (!G.met[p.idx]) h += `<div class="dos">Not interviewed yet. Tap to meet.</div>`;
     sts.forEach(s => { h += `<button class="note ${s.kind === 'confession' ? 'conf' : s.kind} ${s.broken ? 'broken' : ''} ${armed && !s.broken ? 'armed-t' : ''}" data-s="${s.id}"><span class="k">${({ confession: 'Confession', call: 'Phone alibi', alone: 'Admission' })[s.kind] || 'Alibi claim'}</span><span class="tx">“${esc(s.text)}”</span>${s.broken ? `<span class="lie">LIE</span><span class="by">🧵 Broken by: ${esc(G.clues[s.brokenBy].title)}</span>` : ''}</button>`; });
+    if (G.polyStrip && G.polyStrip[p.idx]) h += `<div class="pstrip"><span>📈 LIE BOX · ${esc(POLY_TAG[G.poly[p.idx].murder][0])}</span><img src="${G.polyStrip[p.idx]}" alt="Polygraph strip"></div>`;
     if (G.notes[p.idx].length) h += `<div class="dos"><ul>${G.notes[p.idx].map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`;
     h += `</div></div>`;
   });
@@ -306,9 +308,9 @@ function renderIAct() {
   if (cur === null) return;
   const tps = E.topics(G, cur), a = $('#iAct'), dawn = G.dawn || G.over;
   a.innerHTML = tps.map((t, i) => `<button class="ab ${t.done ? 'done' : ''} ${tps.length === 3 && i === 2 ? 'wide' : ''}" data-t="${t.id}">${esc(t.label)}<small>1 move</small></button>`).join('')
-    + `<button class="ab ev" id="aEv">🗂️ Show evidence<small>right: 1 · wrong: 2</small></button><button class="ab acc" id="aAcc">☠️ Accuse<small>final</small></button>`;
+    + polyBtn() + `<button class="ab ev" id="aEv">🗂️ Show evidence<small>right: 1 · wrong: 2</small></button><button class="ab acc" id="aAcc">☠️ Accuse<small>final</small></button>`;
   a.querySelectorAll('[data-t]').forEach(b => b.onclick = () => doAsk(b.dataset.t));
-  $('#aEv').onclick = () => pickEvidence(); $('#aAcc').onclick = () => openAccuse(false);
+  $('#aEv').onclick = () => pickEvidence(); $('#aAcc').onclick = () => openAccuse(false); if ($('#aPoly')) $('#aPoly').onclick = doPoly;
   a.classList.toggle('busy', busy || dawn);
 }
 async function openInterview(i, pressWith) {
@@ -483,6 +485,120 @@ function runSeance(r) {
   });
 }
 
+/* ---------- the lie box: a 1940s polygraph. Hold the lever, the chart paper rolls, three pens draw the suspect's pulse, breath and sweat ---------- */
+const POLY_TAG = { true: ['TRUE', 'ok'], lie: ['LIE', 'bad'], jump: ['SPIKE', 'bad'], ice: ['FLAT', 'ice'] };
+function polyBtn() {
+  if (!G.met[cur]) return '';
+  if (G.poly && G.poly[cur]) return `<button class="ab poly wide done" id="aPoly">📈 Lie box: strip pinned to the Board<small>${esc(POLY_TAG[G.poly[cur].murder][0])} on the murder question</small></button>`;
+  const n = E.polyLeft(G);
+  return `<button class="ab poly wide ${n < 1 ? 'out' : ''}" id="aPoly">📈 Strap ${esc(G.people[cur].short)} to the lie box<small>${n < 1 ? 'out of chart paper tonight' : '1 move · −40 pts · ' + n + ' strip' + (n === 1 ? '' : 's') + ' of paper left'}</small></button>`;
+}
+async function doPoly() {
+  if (busy || G.over || cur === null) return;
+  const i = cur, p = G.people[i];
+  if (G.poly && G.poly[i]) { S.sfx.tap(); return toast('📈 ' + p.short + '\'s strip is already on the Board.'); }
+  if (E.polyLeft(G) < 1) { S.sfx.wrong(); return toast('📈 Out of chart paper. Two strips a night.'); }
+  const ok = await modal(`<div class="dark polypre"><div class="crystal">📈</div><h3>THE LIE BOX?</h3><p>Officer Keeler wheels in the polygraph: a walnut case, three ink pens, a roll of chart paper. A cuff on the arm, a tube round the chest, two brass plates under ${esc(p.short)}'s fingertips.</p><ul class="ul"><li>Costs <b>1 move</b> and <b>40 points</b>. Paper for <b>${E.polyLeft(G)} strip${E.polyLeft(G) === 1 ? '' : 's'}</b> tonight, one per suspect.</li><li><b>Hold the lever</b> to roll the paper. Three questions. Watch the needles.</li></ul><button class="btn" data-r="go">Strap ${esc(p.short)} in</button><button class="btn alt" data-r="no">Not yet</button></div>`);
+  if (ok !== 'go') return;
+  busy = true; renderIAct(); const r = E.polygraph(G, i); if (!r.ok) { busy = false; renderIAct(); return; }
+  updateHud(true);
+  await runPoly(p, r);
+  renderAll(); if (cur !== null) renderIHead();
+  await afterAction(r.events); busy = false; renderIAct();
+}
+function runPoly(p, r) {
+  return new Promise(done => {
+    const ov = document.createElement('div'); ov.className = 'liebox'; ov.id = 'liebox';
+    ov.innerHTML = `<div class="lbhead"><div class="lbport" id="lbPort">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', nerve: G.nerve[p.idx], label: p.name })}</div><div class="lbinf"><small>THE LIE BOX · KEELER MODEL 6</small><b>${esc(p.name)}</b><em id="lbQ">Cuff on. Plates under the fingers.</em></div><div class="lbbpm" id="lbBpm"><b>--</b><small>BPM</small></div></div>
+      <div class="lbmach"><div class="lbpaper" id="lbPaper"><canvas id="lbC"></canvas><canvas id="lbA"></canvas><div class="lblab"><span class="l1">PULSE</span><span class="l2">BREATH</span><span class="l3">SWEAT</span></div></div><div class="lbbrass"><i></i><i></i><i></i><i></i></div></div>
+      <div class="lbqs">${r.qs.map((q, k) => `<div class="lbq" data-k="${k}"><span class="n">Q${k + 1}</span><span class="tx">${esc(q.q)}</span><span class="pill"></span></div>`).join('')}</div>
+      <div class="lbhint" id="lbHint">✊ Hold the lever to roll the paper</div>
+      <button class="lblever" id="lbLever" data-now aria-label="Hold to roll the chart paper"><span class="knob"></span><b>HOLD TO ROLL</b></button>`;
+    document.body.appendChild(ov); S.sfx.poly(true); hap('heavy');
+    const paper = $('#lbPaper'), pc = $('#lbC'), ac = $('#lbA'), lever = $('#lbLever'), bpmEl = $('#lbBpm b'), qEl = $('#lbQ'), hint = $('#lbHint');
+    const dpr = Math.min(2, devicePixelRatio || 1), bb = paper.getBoundingClientRect(), W = Math.max(280, Math.round(bb.width)), H = Math.max(180, Math.round(bb.height));
+    [pc, ac].forEach(c => { c.width = W * dpr; c.height = H * dpr; c.style.width = W + 'px'; c.style.height = H + 'px'; });
+    const px = pc.getContext('2d'), ax = ac.getContext('2d'); px.scale(dpr, dpr); ax.scale(dpr, dpr);
+    const tmp = document.createElement('canvas'); tmp.width = pc.width; tmp.height = pc.height; const tx = tmp.getContext('2d');
+    const PAPER = '#efe4c8', GRID = 'rgba(196,92,92,.22)', GRID2 = 'rgba(196,92,92,.45)', INK = ['#b3122a', '#1f3f9a', '#1d6b3a'], LANE = [0.2, 0.5, 0.8].map(k => k * H), penX = Math.round(W * 0.74);
+    px.fillStyle = PAPER; px.fillRect(0, 0, W, H);
+    let off = 0; const SPEED = 46; // px of paper per second of rolling
+    // paper is scrolled in whole device pixels (no resampling smear); grid columns are drawn per device pixel
+    const gridCol = (X, o) => { px.save(); px.setTransform(1, 0, 0, 1, 0, 0); px.fillStyle = PAPER; px.fillRect(X, 0, 1, H * dpr); const col = Math.round(o / dpr);
+      if (o % Math.round(10 * dpr) === 0) { px.fillStyle = (o % Math.round(50 * dpr) === 0) ? GRID2 : GRID; px.fillRect(X, 0, 1, H * dpr); }
+      px.fillStyle = GRID; for (let y = 10; y < H; y += 10) px.fillRect(X, Math.round(y * dpr), 1, y % 50 === 0 ? 2 : 1); px.restore(); };
+    for (let X = 0; X < W * dpr; X++) gridCol(X, X);
+    off = Math.round(W * dpr); let acc = 0;
+    const SEG = 3.0, ASK = 0.9, auto = FAST || /[?&]autopoly\b/.test(location.search), rate = FAST ? 8 : auto ? 2.5 : 1;
+    let qi = 0, tq = 0, T = 0, beatPh = 0, last = performance.now(), raf = 0, hold = false, prevY = LANE.slice(), finished = false, alarmed = false, idle = 0, typed = -1, jitter = [0, 0, 0], sweat = 0, bpmShow = 0, shake = 0;
+    const read = () => r.qs[Math.min(qi, r.qs.length - 1)].r;
+    const sig = (kind, e) => { // e: 0..1 response envelope inside the answer window
+      const base = r.bpm; if (kind === 'lie') return { bpm: base * (1 + 0.38 * e), pa: 1 + 0.9 * e, ba: 1 + 0.8 * e, br: 1 + 0.9 * e, sw: 0.55 * e, jit: 0.35 * e };
+      if (kind === 'jump') return { bpm: base * (1 + 0.55 * e), pa: 1 + 1.3 * e, ba: 1 + 1.4 * e, br: 1 + 1.6 * e, sw: 0.75 * e, jit: 0.9 * e };
+      if (kind === 'ice') return { bpm: base * (1 - 0.32 * e), pa: 1 - 0.75 * e, ba: 1 - 0.85 * e, br: 1 - 0.5 * e, sw: -0.12 * e, jit: 0 };
+      return { bpm: base * (1 + 0.04 * e), pa: 1 + 0.08 * e, ba: 1, br: 1, sw: 0.04 * e, jit: 0 };
+    };
+    const pulseWave = ph => Math.exp(-Math.pow((ph - 0.1) / 0.025, 2)) - 0.35 * Math.exp(-Math.pow((ph - 0.17) / 0.03, 2)) + 0.22 * Math.exp(-Math.pow((ph - 0.5) / 0.07, 2));
+    const stampAt = (k, x) => { const [txt, cl] = POLY_TAG[r.qs[k].r]; px.save(); px.translate(x - 30, H * 0.5); px.rotate(-0.18 + (k - 1) * 0.08); px.globalAlpha = 0.8; px.strokeStyle = px.fillStyle = cl === 'ok' ? '#1d6b3a' : cl === 'ice' ? '#1f3f9a' : '#b3122a'; px.lineWidth = 3; px.font = '900 26px "Courier New",monospace'; const w = px.measureText(txt).width + 18; px.strokeRect(-w / 2, -20, w, 38); px.textAlign = 'center'; px.textBaseline = 'middle'; px.fillText(txt, 0, 1); px.restore(); };
+    const setQ = k => { $$('#liebox .lbq').forEach((el, j) => el.classList.toggle('on', j === k)); qEl.textContent = '“' + r.qs[k].q + '”'; S.sfx.type(); };
+    const settle = k => { const q = r.qs[k], [txt, cl] = POLY_TAG[q.r], el = $(`#liebox .lbq[data-k="${k}"]`); el.classList.remove('on'); el.classList.add('done', cl); el.querySelector('.pill').textContent = txt;
+      stampAt(k, penX - 8); S.sfx.stamp(); hap(cl === 'ok' ? 'tap' : 'crack');
+      if (q.r === 'true') S.sfx.polyTrue();
+      if (k === 2) $('#lbPort').innerHTML = A.portrait(p.art, { accent: G.st.accent, mood: q.r === 'ice' ? 'smug' : q.r === 'jump' ? 'nervous' : 'neutral', nerve: G.nerve[p.idx], label: p.name }); };
+    const down = e => { e.preventDefault(); hold = true; ov.classList.add('rolling'); try { lever.setPointerCapture(e.pointerId); } catch (_) {} hint.classList.add('gone'); hap('tap'); S.sfx.tap(); };
+    const up = () => { hold = false; ov.classList.remove('rolling'); };
+    lever.addEventListener('pointerdown', down); ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => lever.addEventListener(k, up));
+    lever.addEventListener('contextmenu', e => e.preventDefault());
+    setQ(0); if (auto) hint.classList.add('gone');
+    const step = now => {
+      const dtR = Math.min(0.05, (now - last) / 1000); last = now;
+      const rolling = (hold || auto) && !finished, dt = rolling ? dtR * rate : 0;
+      if (!rolling && !finished && !auto) { idle += dtR; if (idle > 4) { hint.classList.remove('gone'); hint.textContent = '✊ Keep holding the lever. ' + p.short + ' is sweating it out.'; } } else idle = 0;
+      const kind = read(), e = tq < ASK ? 0 : Math.min(1, (tq - ASK) / 0.7) * (tq > SEG - 0.35 ? Math.max(0.35, (SEG - tq) / 0.35) : 1), s = sig(kind, e);
+      if (rolling) {
+        T += dt; tq += dt; const ph0 = beatPh; beatPh = (beatPh + dt * s.bpm / 60) % 1;
+        if (ph0 < 0.1 && beatPh >= 0.1 || ph0 > beatPh && beatPh >= 0.1) { S.sfx.beat(kind === 'ice' && e > 0.5 ? 0.25 : 0.4 + 0.25 * e); hap('pulse'); paper.parentNode.classList.remove('thump'); void paper.offsetWidth; paper.parentNode.classList.add('thump'); }
+        if (!alarmed && e > 0.85 && (kind === 'lie' || kind === 'jump')) { alarmed = true; S.sfx.polyAlarm(); hap('heavy'); shake = kind === 'jump' ? 1 : 0.6; }
+        if (!alarmed && e > 0.85 && kind === 'ice') { alarmed = true; S.sfx.polyFlat(); hap('miss'); ov.classList.add('cold'); }
+        // scroll the paper left by dx, draw fresh paper on the right
+        acc += SPEED * dt * dpr; const sh = Math.floor(acc), dx = sh / dpr; if (sh > 0) { acc -= sh;
+          tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, tmp.width, tmp.height); tx.drawImage(pc, 0, 0);
+          px.save(); px.setTransform(1, 0, 0, 1, 0, 0); px.imageSmoothingEnabled = false; px.drawImage(tmp, -sh, 0); px.restore();
+          const PW = pc.width; for (let k = sh; k > 0; k--) gridCol(PW - k, off + sh - k); off += sh;
+          // three pens
+          jitter = jitter.map(j => j * 0.7 + (Math.random() * 2 - 1) * s.jit * 0.3);
+          const amp = H * 0.11;
+          const yP = LANE[0] - amp * s.pa * pulseWave(beatPh) + jitter[0] * amp * 0.9;
+          const yB = LANE[1] - amp * 0.75 * s.ba * Math.sin(T * Math.PI * 2 / 3.6 * s.br) + jitter[1] * amp;
+          sweat += ((s.sw) - sweat) * Math.min(1, dt * 2.2);
+          const yS = LANE[2] - amp * 1.4 * sweat + jitter[2] * amp * 0.6 + Math.sin(T * 0.7) * 2;
+          [yP, yB, yS].forEach((y, k) => { y = Math.max(6, Math.min(H - 6, y)); px.strokeStyle = INK[k]; px.lineWidth = 1.6; px.lineCap = 'round'; px.beginPath(); px.moveTo(penX - dx, prevY[k]); px.lineTo(penX, y); px.stroke(); prevY[k] = y; });
+          S.sfx.polyRoll(true, Math.min(1, Math.abs(yP - LANE[0]) / amp * 0.5 + Math.abs(jitter[1]) + s.jit * 0.4));
+        }
+        if (tq >= SEG) { settle(qi); qi++; tq = 0; alarmed = false; if (qi >= r.qs.length) finish(); else setQ(qi); }
+      } else S.sfx.polyRoll(false, 0);
+      // the pen arms (redrawn every frame)
+      ax.clearRect(0, 0, W, H); prevY.forEach((y, k) => { ax.strokeStyle = 'rgba(40,30,20,.85)'; ax.lineWidth = 2.2; ax.beginPath(); ax.moveTo(W + 4, LANE[k] - 26 + k * 4); ax.lineTo(penX + 2, y); ax.stroke(); ax.fillStyle = INK[k]; ax.beginPath(); ax.arc(penX, y, 3.2, 0, Math.PI * 2); ax.fill(); });
+      ax.fillStyle = 'rgba(0,0,0,.08)'; ax.fillRect(penX + 1, 0, W - penX, H);
+      const tb = Math.round(s.bpm); bpmShow += (tb - bpmShow) * 0.2; bpmEl.textContent = rolling || finished ? Math.round(bpmShow) : '--';
+      if (shake > 0) { shake = Math.max(0, shake - dtR * 1.6); ov.style.setProperty('--shx', ((Math.random() * 2 - 1) * shake * 7).toFixed(1) + 'px'); ov.style.setProperty('--shy', ((Math.random() * 2 - 1) * shake * 4).toFixed(1) + 'px'); } else ov.style.removeProperty('--shx');
+      if (!finished || !done._closed) raf = requestAnimationFrame(step);
+    };
+    const finish = () => {
+      finished = true; hold = false; ov.classList.remove('rolling'); S.sfx.polyRoll(false, 0);
+      G.polyStrip = G.polyStrip || {}; try { G.polyStrip[p.idx] = pc.toDataURL('image/jpeg', 0.72); } catch (_) {}
+      setTimeout(() => {
+        cancelAnimationFrame(raf); done._closed = true; S.sfx.poly(false);
+        const [txt, cl] = POLY_TAG[r.murder], card = document.createElement('div'); card.className = 'lbcard ' + cl;
+        card.innerHTML = `<small>KEELER'S READING · ${esc(p.short.toUpperCase())}</small><div class="lbverd">${txt}</div><p>${esc(r.verdict)}</p><p class="sm">Story: <b>${r.story ? 'spiked' : 'steady'}</b>. The strip is pinned to ${esc(p.short)}'s folder on the Board. ${r.left ? r.left + ' strip of paper left tonight.' : 'That was the last of the paper.'}</p><button class="btn" id="lbDone">Tear off the strip</button>`;
+        ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on')); hap(cl === 'ice' ? 'heavy' : 'link');
+        $('#lbDone').onclick = () => { S.sfx.page(); hap('lift'); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(); }, FAST ? 0 : 450); };
+      }, FAST ? 0 : 900);
+    };
+    raf = requestAnimationFrame(step);
+  });
+}
+
 /* ---------- result ---------- */
 async function showResult(res) {
   const R = $('#result'); R.hidden = false; R.scrollTop = 0; $('#hud').hidden = false; updateHud();
@@ -499,7 +615,7 @@ async function showResult(res) {
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
   <div class="sgrid"><div><b>${res.stats.left}</b>moves left</div><div><b>${res.stats.cracks}</b>lies cracked</div><div><b>${res.stats.bluffs}</b>bad guesses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>proof</div></div>
-  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}
+  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
   <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
