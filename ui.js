@@ -400,6 +400,10 @@ function openAccuse(forced) {
 async function finish(idx, proof) {
   busy = true; const res = E.accuse(G, idx, proof); over = true;
   $('#interview').hidden = true; cur = null;
+  if (res.win && (!FAST || /[?&]autochase\b/.test(location.search))) { // the killer makes a run for it
+    if (S.setScene) S.setScene('chase'); res.chase = await runChase(G.people[res.killer]); if (S.setScene) S.setScene(G.st.id);
+    if (res.chase.caught) res.score += CHASE_BONUS;
+  }
   const st = store.get('stats', { played: 0, solved: 0, best: 0, streak: 0 });
   st.played++; if (res.win) { st.solved++; st.streak++; st.best = Math.max(st.best, res.score); } else st.streak = 0; store.set('stats', st);
   if (daily) store.set('daily', { date: today(), win: res.win, rank: res.rank.name, score: res.score });
@@ -599,6 +603,175 @@ function runPoly(p, r) {
   });
 }
 
+/* ---------- the chase: name the right killer and they bolt. Tap to leap the gaps, hold to fly further, collar them before they're gone ---------- */
+const CHASE_WHERE = {
+  club: ['out the dressing-room window', 'over the rooftops of the river district', 'HOTEL', 'dropped onto a passing tram'],
+  manor: ['through the conservatory glass', 'across the slate roofs of Blackwood', 'BLACKWOOD', 'vanished into the hedge maze'],
+  train: ['up the ladder between carriages', 'along the carriage roofs at sixty miles an hour', 'MERIDIAN', 'swung down into the mail car'],
+  lab: ['out through the radio-shack hatch', 'across the iced-over station modules', 'HALCYON', 'disappeared into the whiteout'],
+  studio: ['up the lighting gantry', 'over the soundstage roofs of Studio Nine', 'STUDIO 9', 'climbed into a prop truck'],
+};
+const CHASE_T = 24, CHASE_BONUS = 150, CHASE_D0 = 60;
+function runChase(k) {
+  return new Promise(done => {
+    const st = G.st, P = st.pal || {}, acc = st.accent, acc2 = P.acc2 || '#39e0ff', gold = P.gold || '#ffcf5c', wh = CHASE_WHERE[st.id] || CHASE_WHERE.club;
+    const auto = /[?&]autochase\b/.test(location.search), flat = st.id === 'train';
+    const ov = document.createElement('div'); ov.className = 'chase'; ov.id = 'chase'; ov.style.setProperty('--acc', acc); ov.style.setProperty('--acc2', acc2);
+    ov.innerHTML = `<canvas id="chC"></canvas><label class="chtap" id="chTap" aria-label="Tap to jump"><input type="checkbox" tabindex="-1" ${Hap.on ? 'switch' : ''}></label>
+      <div class="chhead"><div class="chport">${A.portrait(k.art, { accent: acc, mood: 'smug', nerve: 0, label: k.name })}</div><div class="chinf"><small>THE CHASE · ${esc(wh[0].toUpperCase())}</small><b>${esc(k.short)} bolted!</b><em id="chMsg">${esc(wh[1][0].toUpperCase() + wh[1].slice(1))}. Collar ${k.g === 'f' ? 'her' : 'him'}.</em></div><div class="chclock" id="chClock"><b>${CHASE_T}</b><small>SEC</small></div></div>
+      <div class="chgap"><span>🕵️</span><div class="chbar"><i id="chBar"></i></div><span>🏃</span><b id="chYds">${CHASE_D0} yds</b></div>
+      <div class="chtip" id="chTip">TAP to jump · HOLD to leap further</div><div class="chstamp" id="chStamp" hidden></div><button class="chskip" id="chSkip">Let the uniforms handle it</button>`;
+    document.body.appendChild(ov); hap('heavy'); S.sfx.thunder(true); if (window.NoirFx) NoirFx.flash();
+    const cv = ov.querySelector('#chC'), x = cv.getContext('2d'), tap = ov.querySelector('#chTap');
+    const dpr = Math.min(2, devicePixelRatio || 1); let W = 0, H = 0;
+    const size = () => { W = ov.clientWidth; H = ov.clientHeight; cv.width = W * dpr; cv.height = H * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    size(); addEventListener('resize', size);
+    const rnd = Math.random, lerp = (a, b, t) => a + (b - a) * t;
+    // the city behind: two parallax layers of lit windows, one neon sign
+    const layer = (n, hMin, hMax, wMin, wMax) => { const a = []; let bx = 0; while (bx < 1600) { const w = wMin + rnd() * (wMax - wMin), h = hMin + rnd() * (hMax - hMin), win = []; for (let wy = 10; wy < h - 8; wy += 13) for (let wx = 6; wx < w - 8; wx += 11) if (rnd() < 0.22) win.push([wx, wy, rnd() < 0.15]); a.push({ x: bx, w, h, win, tower: rnd() < 0.18 }); bx += w + 4 + rnd() * 14; } a.len = bx; return a; };
+    const far = layer(0, 120, 300, 50, 110), mid = layer(0, 80, 210, 60, 140), signAt = 300 + rnd() * 600;
+    const drops = []; for (let i = 0; i < 140; i++) drops.push({ x: rnd() * 1.4, y: rnd(), l: 10 + rnd() * 20, v: 0.9 + rnd() * 0.8 });
+    // the roofs we run on (world coords). y = roof top in screen px
+    const roofs = [], obs = [];
+    const top0 = () => H * (flat ? 0.7 : 0.68);
+    roofs.push({ x: -200, w: W * 0.95 + 200, y: top0() });
+    const extend = () => { while (roofs[roofs.length - 1].x + roofs[roofs.length - 1].w < cam + W * 2.2) { const p = roofs[roofs.length - 1], hard = Math.min(1, T0 / CHASE_T * 1.2);
+      const gap = flat ? 46 + rnd() * 40 + hard * 20 : 64 + rnd() * (50 + hard * 30), w = flat ? 280 + rnd() * 140 : 190 + rnd() * 290;
+      const y = flat ? top0() : Math.max(H * 0.52, Math.min(H * 0.8, p.y + (rnd() * 96 - 56)));
+      const r = { x: p.x + p.w + gap, w, y }; roofs.push(r);
+      const nO = w > 430 && rnd() < 0.45 ? 2 : w > 330 && rnd() < 0.75 ? 1 : 0, span = w - 320;
+      for (let j = 0; j < nO; j++) { const ow = 16 + rnd() * 14, oh = 22 + rnd() * 20; obs.push({ x: r.x + 110 + (j + 0.2 + rnd() * 0.6) * span / Math.max(1, nO) - ow / 2, w: ow, h: oh, y: r.y, kind: flat ? 'vent' : rnd() < 0.5 ? 'chimney' : 'vent', hit: false }); } } };
+    const roofAt = wx => roofs.find(r => wx >= r.x && wx <= r.x + r.w);
+    // state
+    let cam = 0, v = 300, T0 = 0, dist = CHASE_D0, feet = top0(), vy = 0, grounded = true, coyote = 0, buffer = 0, hold = false, holdT = 0, stumble = 0, shake = 0, flash = 0, phase = 0, stepAcc = 0;
+    let botLong = true, clean = 0, falls = 0, bumps = 0, over = false, outcome = null, tackle = 0, raf = 0, last = performance.now(), nextBolt = 4 + rnd() * 4, msgT = 0;
+    const PX = () => Math.max(70, W * 0.24);
+    extend();
+    const msg = (t, cls) => { const m = ov.querySelector('#chMsg'); m.textContent = t; m.className = cls || ''; msgT = 1.6; };
+    const press = e => { if (e) e.preventDefault && e.cancelable && e.preventDefault(); if (over) return; hold = true; buffer = 0.14; ov.querySelector('#chTip').classList.add('gone'); };
+    const release = () => { hold = false; };
+    tap.addEventListener('pointerdown', press); tap.addEventListener('pointerup', release); tap.addEventListener('pointercancel', release); tap.addEventListener('pointerleave', release);
+    tap.querySelector('input').addEventListener('click', e => e.stopPropagation());
+    const key = e => { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); if (e.type === 'keydown') { if (!e.repeat) press(); } else release(); } };
+    addEventListener('keydown', key); addEventListener('keyup', key);
+    ov.querySelector('#chSkip').onclick = () => { if (over) return; end('skip'); };
+    // drawing helpers
+    function runner(px, fy, ph, air, rim, scarf, dir, rot) {
+      x.save(); x.translate(px, fy); if (rot) x.rotate(rot); x.scale((dir || 1) * 1.3, 1.3); x.shadowColor = rim; x.shadowBlur = 9; x.lineCap = 'round'; x.lineJoin = 'round';
+      const sw = air ? 0.9 : Math.sin(ph), sw2 = air ? -0.6 : Math.sin(ph + Math.PI);
+      const hip = [0, -20], sh = [3, -38];
+      const leg = (s, back) => { const kx = hip[0] + s * 9, ky = hip[1] + 10 - Math.abs(s) * 2, fx = kx + (air ? (back ? -10 : 6) : s * 5 - (s < 0 ? 4 : 0)), fy2 = air ? (back ? -4 : -8) : -Math.max(0, -s) * 7; x.beginPath(); x.moveTo(hip[0], hip[1]); x.lineTo(kx, ky); x.lineTo(fx, fy2); x.stroke(); };
+      x.strokeStyle = '#06050a'; x.lineWidth = 5; leg(sw, 0); leg(sw2, 1);
+      // coat with flapping tail
+      const flap = Math.sin(ph * 2) * 3 + (air ? 6 : 0);
+      x.fillStyle = '#08070c'; x.beginPath(); x.moveTo(sh[0] - 6, sh[1]); x.lineTo(sh[0] + 6, sh[1]); x.lineTo(5, -14); x.lineTo(-12 - flap, -10 + flap * 0.3); x.closePath(); x.fill();
+      x.strokeStyle = rim; x.globalAlpha = 0.85; x.lineWidth = 1.2; x.beginPath(); x.moveTo(sh[0] + 6, sh[1]); x.lineTo(5, -14); x.stroke(); x.globalAlpha = 1;
+      // arms
+      x.strokeStyle = '#06050a'; x.lineWidth = 4; [sw2, sw].forEach(s => { x.beginPath(); x.moveTo(sh[0], sh[1] + 2); x.lineTo(sh[0] + s * 8, sh[1] + 11); x.lineTo(sh[0] + s * 12 + 4, sh[1] + 6 + (air ? -8 : 0)); x.stroke(); });
+      // head + hat
+      x.fillStyle = '#08070c'; x.beginPath(); x.arc(sh[0] + 2, sh[1] - 7, 5, 0, 7); x.fill();
+      x.beginPath(); x.moveTo(sh[0] - 7, sh[1] - 10); x.lineTo(sh[0] + 11, sh[1] - 10); x.lineTo(sh[0] + 7, sh[1] - 12); x.lineTo(sh[0] + 6, sh[1] - 17); x.lineTo(sh[0] - 2, sh[1] - 17); x.lineTo(sh[0] - 3, sh[1] - 12); x.closePath(); x.fill();
+      x.strokeStyle = rim; x.lineWidth = 1; x.beginPath(); x.moveTo(sh[0] - 7, sh[1] - 10); x.lineTo(sh[0] + 11, sh[1] - 10); x.stroke();
+      if (scarf) { x.strokeStyle = scarf; x.lineWidth = 3; x.beginPath(); x.moveTo(sh[0], sh[1] - 1); x.quadraticCurveTo(sh[0] - 10, sh[1] - 4 + Math.sin(ph * 3) * 3, sh[0] - 20, sh[1] + 2 + Math.sin(ph * 3 + 1) * 4); x.stroke(); }
+      x.restore();
+    }
+    function draw(dt) {
+      const sx = shake > 0 ? (rnd() * 2 - 1) * shake * 8 : 0, sy = shake > 0 ? (rnd() * 2 - 1) * shake * 5 : 0;
+      x.save(); x.translate(sx, sy);
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.bg || '#0b0710'); g.addColorStop(0.62, P.panel || '#22102f'); g.addColorStop(1, acc + '66'); x.fillStyle = g; x.fillRect(-20, -20, W + 40, H + 40);
+      // moon + neon haze
+      const mx = W * 0.8, my = H * 0.17; const mg = x.createRadialGradient(mx, my, 4, mx, my, 120); mg.addColorStop(0, '#fff6dcdd'); mg.addColorStop(0.18, '#f4e7c255'); mg.addColorStop(1, '#0000'); x.fillStyle = mg; x.fillRect(mx - 130, my - 130, 260, 260); x.fillStyle = '#fbf3dc'; x.beginPath(); x.arc(mx, my, 20, 0, 7); x.fill();
+      const lay = (L, par, base, col, winCol) => { const off = (cam * par) % L.len; for (let rep = -1; rep < 2; rep++) L.forEach(b => { const bx = b.x - off + rep * L.len; if (bx > W || bx + b.w < 0) return; const by = base - b.h; x.fillStyle = col; x.fillRect(bx, by, b.w, b.h + 400); if (b.tower) { x.fillRect(bx + b.w * 0.3, by - 26, b.w * 0.3, 26); x.fillRect(bx + b.w * 0.44, by - 44, 2, 18); }
+        b.win.forEach(w => { x.fillStyle = w[2] ? acc2 + 'cc' : winCol; x.fillRect(bx + w[0], by + w[1], 5, 7); }); }); };
+      lay(far, 0.12, H * 0.62, P.line || '#2a2238', gold + '55');
+      // neon sign on the far layer
+      const sgx = ((signAt - cam * 0.12) % 1600 + 1600) % 1600 - 100; if (sgx > -160 && sgx < W + 40) { const on = rnd() > 0.04; x.font = '900 22px Georgia,serif'; x.textAlign = 'left'; x.shadowColor = acc2; x.shadowBlur = on ? 18 : 0; x.fillStyle = on ? acc2 : acc2 + '33'; x.fillText(wh[2], sgx, H * 0.36); x.shadowBlur = 0; }
+      lay(mid, 0.38, H * 0.7, P.panel || '#1a1424', gold + '77');
+      const hz = x.createLinearGradient(0, H * 0.45, 0, H * 0.75); hz.addColorStop(0, '#0000'); hz.addColorStop(1, acc + '55'); x.fillStyle = hz; x.fillRect(-20, H * 0.45, W + 40, H * 0.35);
+      // rain
+      x.strokeStyle = 'rgba(190,205,240,.32)'; x.lineWidth = 1; x.beginPath(); drops.forEach(d => { d.y += d.v * dt * 1.4; d.x -= (0.25 + v / 1800) * dt * d.v; if (d.y > 1) { d.y = -0.05; d.x = rnd() * 1.4; } if (d.x < -0.1) d.x += 1.4; const X = d.x * W, Y = d.y * H; x.moveTo(X, Y); x.lineTo(X - d.l * (0.3 + v / 1200), Y + d.l); }); x.stroke();
+      // roofs + obstacles
+      roofs.forEach(r => { const rx = r.x - cam; if (rx > W + 10 || rx + r.w < -10) return; x.fillStyle = '#050408'; x.fillRect(rx, r.y, r.w, H - r.y + 40);
+        x.fillStyle = acc; x.globalAlpha = 0.7; x.fillRect(rx, r.y, r.w, 2); x.globalAlpha = 0.18; x.fillRect(rx, r.y + 2, 2, H); x.fillRect(rx + r.w - 2, r.y + 2, 2, H); x.globalAlpha = 1;
+        if (flat) { x.fillStyle = '#0e0c14'; for (let wx = rx + 14; wx < rx + r.w - 20; wx += 34) x.fillRect(wx, r.y + 16, 20, 12); x.fillStyle = acc2 + '55'; for (let wx = rx + 14; wx < rx + r.w - 20; wx += 34) x.fillRect(wx + 2, r.y + 18, 16, 8); } });
+      obs.forEach(o => { const ox = o.x - cam; if (ox > W + 10 || ox + o.w < -10) return; x.fillStyle = o.hit ? '#2a0f12' : '#08070c'; x.fillRect(ox, o.y - o.h, o.w, o.h); x.fillStyle = acc; x.globalAlpha = 0.55; x.fillRect(ox - 2, o.y - o.h - 3, o.w + 4, 3); x.globalAlpha = 1;
+        if (o.kind === 'chimney' && !o.hit) { x.fillStyle = 'rgba(200,200,220,.10)'; for (let s = 0; s < 3; s++) { x.beginPath(); x.arc(ox + o.w / 2 - s * 8 - (T0 * 30 % 8), o.y - o.h - 8 - s * 10, 5 + s * 3, 0, 7); x.fill(); } } });
+      // the killer ahead
+      const kx = Math.min(W * 0.9, PX() + 34 + dist * 3.6) - tackle * 0, kwx = cam + kx; let ky = kAt(kwx);
+      if (outcome === 'caught') runner(PX() + 44, feet - 4, 0.4, true, acc2, acc2, 1, 1.45 * Math.min(1, tackle * 1.4)); // face-down on the tar paper
+      else runner(kx, ky, phase * 1.04 + 1.3, ky < (roofAt(kwx) || { y: 1e9 }).y - 2, acc2, acc2);
+      // you
+      runner(PX() + (outcome === 'caught' ? tackle * 18 : 0), feet, outcome === 'caught' ? 0.3 : phase, !grounded, acc, null);
+      if (stumble > 0) { x.fillStyle = gold; x.font = '900 16px Arial'; x.textAlign = 'center'; x.fillText('✶', PX() + 6, feet - 62 - stumble * 20); }
+      // lightning
+      if (flash > 0) { x.fillStyle = `rgba(235,240,255,${flash * 0.55})`; x.fillRect(-20, -20, W + 40, H + 40); }
+      // vignette
+      const vg = x.createRadialGradient(W / 2, H * 0.55, H * 0.3, W / 2, H * 0.55, H * 0.85); vg.addColorStop(0, '#0000'); vg.addColorStop(1, '#000a'); x.fillStyle = vg; x.fillRect(-20, -20, W + 40, H + 40);
+      x.restore();
+    }
+    function kAt(wx) { const r = roofAt(wx); let y; if (r) { y = r.y; const o = obs.find(o => wx > o.x - 26 && wx < o.x + o.w + 26 && Math.abs(o.y - r.y) < 1); if (o) { const t = (wx - (o.x - 26)) / (o.w + 52); y -= Math.sin(Math.PI * t) * (o.h + 18); } return y; }
+      const i = roofs.findIndex(r => r.x > wx); if (i < 1) return top0(); const a = roofs[i - 1], b = roofs[i], t = (wx - (a.x + a.w)) / (b.x - a.x - a.w); return lerp(a.y, b.y, t) - Math.sin(Math.PI * t) * 64; }
+    function botThink() { // ?autochase: a perfect runner, for demos and tests
+      if (!grounded) { hold = vy < 0 && (botLong || holdT < 0.06); return; } const fx = cam + PX() + 12, r = roofAt(cam + PX());
+      const edge = r ? r.x + r.w - fx : 0, nextO = obs.find(o => !o.hit && o.x - fx < v * 0.09 + 8 && o.x - fx > 0);
+      if (r && edge < v * 0.06 + 6) { botLong = true; press(); } else if (nextO) { botLong = false; press(); }
+    }
+    function end(kind) {
+      if (over) return; over = true; outcome = kind; hold = false; const s = ov.querySelector('#chStamp'); ov.querySelector('#chSkip').hidden = true;
+      if (kind === 'caught') { msg('Got ' + (k.g === 'f' ? 'her' : 'him') + '! Cuffs on.', 'good'); S.sfx.cuffs(); hap('win'); s.textContent = 'COLLARED!'; s.className = 'chstamp ok'; tackle = 0.001; }
+      else if (kind === 'gone') { msg(k.short + ' ' + wh[3] + '.', 'bad'); S.sfx.escape(); hap('lose'); s.textContent = 'GONE'; s.className = 'chstamp bad'; }
+      s.hidden = kind === 'skip';
+      setTimeout(() => {
+        const secs = Math.round(T0 * 10) / 10, card = document.createElement('div'); card.className = 'chcard ' + (kind === 'caught' ? 'ok' : 'bad');
+        card.innerHTML = kind === 'caught' ? `<small>THE COLLAR · ${secs}s · ${falls + bumps ? falls + bumps + ' stumble' + (falls + bumps === 1 ? '' : 's') : 'not a single stumble'}</small><div class="chverd">+${CHASE_BONUS}</div><p>You brought ${esc(k.short)} down ${esc(wh[1])}. The cuffs click shut in the rain.</p><button class="btn" id="chDone">Book 'em</button>`
+          : kind === 'gone' ? `<small>THE CHASE · ${Math.max(0, Math.ceil(dist))} yards short</small><div class="chverd">GONE</div><p>${esc(k.short)} ${esc(wh[3])}. The uniforms pick ${k.g === 'f' ? 'her' : 'him'} up at dawn. No collar bonus.</p><button class="btn" id="chDone">Close the case</button>`
+          : `<small>THE CHASE</small><div class="chverd">BADGE 714</div><p>You let the uniforms run. They get ${esc(k.short)} at the docks. No collar bonus.</p><button class="btn" id="chDone">Close the case</button>`;
+        ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on'));
+        const fin = () => { S.sfx.page(); ov.classList.add('bye'); removeEventListener('resize', size); removeEventListener('keydown', key); removeEventListener('keyup', key); setTimeout(() => { cancelAnimationFrame(raf); ov.remove(); done({ caught: kind === 'caught', skipped: kind === 'skip', secs, stumbles: falls + bumps }); }, FAST ? 0 : 450); };
+        card.querySelector('#chDone').onclick = fin; if (auto && /[?&]autoclose\b/.test(location.search)) setTimeout(fin, 400);
+      }, kind === 'skip' ? 0 : 1300);
+    }
+    function step(n) {
+      const dt = Math.min(0.05, (n - last) / 1000); last = n;
+      if (!over) { const N = Math.max(1, Math.ceil(dt / (1 / 120))); for (let q = 0; q < N && !over; q++) sim(dt / N);
+        const left = CHASE_T - T0; const ck = ov.querySelector('#chClock b'); ck.textContent = Math.max(0, Math.ceil(left)); ov.querySelector('#chClock').classList.toggle('hot', left < 6);
+        const yd = Math.max(0, dist); ov.querySelector('#chBar').style.width = Math.min(100, yd / CHASE_D0 * 100) + '%'; ov.querySelector('#chYds').textContent = Math.ceil(yd) + ' yds';
+      } else { if (tackle > 0) tackle = Math.min(1, tackle + dt * 3); phase += dt * 3; if (outcome === 'gone') dist += dt * 60; }
+      msgT -= dt; flash = Math.max(0, flash - dt * 2.2); shake = Math.max(0, shake - dt * 2);
+      draw(dt); raf = requestAnimationFrame(step);
+    }
+    function sim(dt) {
+        if (auto) botThink();
+        T0 += dt; const left = CHASE_T - T0;
+        v = (300 + Math.min(110, T0 * 6)) * (stumble > 0 ? 0.55 : 1);
+        cam += v * dt; extend(); phase += dt * v / 22;
+        // physics: variable-height jump, coyote time, jump buffer
+        const GR = 2300; coyote = grounded ? 0.09 : coyote - dt; buffer -= dt;
+        if (buffer > 0 && (grounded || coyote > 0)) { vy = -700; grounded = false; coyote = 0; buffer = 0; holdT = 0; S.sfx.jump(); hap('tap'); }
+        if (!grounded) { holdT += dt; const g2 = (hold && vy < 0 && holdT < 0.3) ? GR * 0.45 : GR; const pf = feet; vy += g2 * dt; feet += vy * dt;
+          const wx = cam + PX(), r = roofAt(wx);
+          const ob = vy > 0 && obs.find(o => wx + 7 > o.x && wx - 7 < o.x + o.w && pf <= o.y - o.h + 2 && feet >= o.y - o.h);
+          if (ob) { feet = ob.y - ob.h; grounded = true; S.sfx.land(0.6); hap('dust'); vy = 0; ob.top = true; }
+          else if (r && vy > 0 && pf <= r.y + 2 && feet >= r.y) { feet = r.y; grounded = true; S.sfx.land(Math.min(1, vy / 1100)); hap('dust'); vy = 0; }
+          else if (r && feet > r.y + 2 && feet <= r.y + 26) { feet = r.y; grounded = true; vy = 0; S.sfx.land(0.4); } // mantle a ledge
+          else if (r && feet > r.y + 26 && pf > r.y + 2) { // smacked the wall of a taller roof: scramble up, lose ground
+            feet = r.y; grounded = true; vy = 0; bumps++; dist += 7; stumble = 0.45; shake = 0.7; clean = 0; S.sfx.gutter(); hap('miss'); msg('Smacked a wall. Scrambled up.', 'bad'); }
+          if (feet > H + 40) { // fell: catch the gutter, haul up on the next roof
+            const nx = roofs.find(q => q.x > wx - 4) || roofs[roofs.length - 1]; cam = nx.x - PX() + 14; feet = nx.y; vy = 0; grounded = true; falls++; dist += 12; shake = 1; flash = 0.25; clean = 0; S.sfx.gutter(); hap('heavy'); msg('Caught a drainpipe! Lost ground.', 'bad'); }
+        } else { const wx = cam + PX(), r = roofAt(wx - 4) || roofAt(wx + 4), ob = obs.find(o => wx + 7 > o.x && wx - 7 < o.x + o.w && Math.abs(feet - (o.y - o.h)) < 2);
+          if (ob) feet = ob.y - ob.h; else if (!r) { grounded = false; vy = 0; } else if (feet < r.y - 2) { grounded = false; vy = 0; } else feet = r.y;
+          stepAcc += dt * v / 46; if (stepAcc >= 1) { stepAcc = 0; S.sfx.step(); } }
+        // chimneys and vents
+        obs.forEach(o => { if (o.hit || o.top) return; const ox = o.x - cam; if (PX() + 8 > ox && PX() - 8 < ox + o.w && feet > o.y - o.h + 3) { o.hit = true; bumps++; dist += 6; stumble = 0.5; shake = 0.8; clean = 0; S.sfx.stumble(); hap('miss'); msg('Clipped a ' + (o.kind === 'chimney' ? 'chimney' : 'vent') + '!', 'bad'); } });
+        stumble = Math.max(0, stumble - dt); if (stumble <= 0) { clean += dt; dist -= (4.2 + Math.min(1.8, clean * 0.15)) * dt; }
+        if (clean > 4 && msgT <= 0 && !auto) { msg('Gaining on ' + (k.g === 'f' ? 'her' : 'him') + '…', 'good'); }
+        if (dist <= 0) end('caught'); else if (left <= 0) end('gone');
+        nextBolt -= dt; if (nextBolt <= 0) { nextBolt = 5 + rnd() * 5; flash = 1; S.sfx.thunder(false); }
+    }
+    raf = requestAnimationFrame(step);
+  });
+}
+
 /* ---------- result ---------- */
 async function showResult(res) {
   const R = $('#result'); R.hidden = false; R.scrollTop = 0; $('#hud').hidden = false; updateHud();
@@ -615,7 +788,7 @@ async function showResult(res) {
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
   <div class="sgrid"><div><b>${res.stats.left}</b>moves left</div><div><b>${res.stats.cracks}</b>lies cracked</div><div><b>${res.stats.bluffs}</b>bad guesses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>proof</div></div>
-  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}
+  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 You collared ' + esc(who.short) + ' on the rooftops in ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 You let the uniforms do the running.' : '🏃 ' + esc(who.short) + ' outran you over the rooftops.'}</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
   <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
@@ -627,7 +800,7 @@ async function showResult(res) {
   $('#bShare').onclick = () => share(res, shareUrl);
 }
 async function share(res, url) {
-  const txt = `🕵️ NOIR: Last Call · ${daily ? 'Daily ' + String(seed).slice(4, 6) + '/' + String(seed).slice(6) : 'Case #' + seed} (${G.st.name})\n${res.rank.icon} ${res.rank.name} · ${res.score.toLocaleString()} pts\n⏱ ${res.stats.left} moves left · 🔓 ${res.stats.cracks} lies cracked${res.stats.sawThrough ? ' · 🎭 saw through a false confession' : ''}\nBeat me: ${url}`;
+  const txt = `🕵️ NOIR: Last Call · ${daily ? 'Daily ' + String(seed).slice(4, 6) + '/' + String(seed).slice(6) : 'Case #' + seed} (${G.st.name})\n${res.rank.icon} ${res.rank.name} · ${res.score.toLocaleString()} pts\n⏱ ${res.stats.left} moves left · 🔓 ${res.stats.cracks} lies cracked${res.stats.sawThrough ? ' · 🎭 saw through a false confession' : ''}${res.chase && res.chase.caught ? ' · 🚓 collared on the rooftops in ' + res.chase.secs + 's' : ''}\nBeat me: ${url}`;
   try {
     let files = null;
     try { const blob = await makeCard(res); if (blob) { const f = new File([blob], 'noir-case.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] })) files = [f]; } } catch (e) {}
@@ -659,6 +832,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, setView, get busy() { return busy; }, Hap, isIOS };
+window.__noir = { get G() { return G; }, E, newGame, setView, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

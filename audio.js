@@ -191,6 +191,15 @@ const STYLES = {
       if ((i === 0 || i === 3 || i === 6) && bar % 2 === 1 && R() < 0.7) lead(t, pk(s.sc), 0.08, 0.25, 'brass', 1300, false); } },
 };
 STYLES.title = Object.assign({}, STYLES.club, { bpm: 64 });
+// the chase: instrumental only. Driving octave bass, four-on-the-floor kick, backbeat snare, brass stabs, tremolo strings
+function snare(t, vol) { noiseHit(t, WN, 'bandpass', 1900, 0.8, vol, 0.16); const g = ctx.createGain(), o = osc('sine', 200, t, t + 0.3); o.frequency.exponentialRampToValueAtTime(140, t + 0.08); env(g, t, 0.002, vol * 0.9, 0.03, 0.06); chain(o, g, musBus); }
+STYLES.chase = { bpm: 172, div: 2, swing: 0, ch: [[40, 52, 55, 59], [40, 52, 55, 59], [36, 52, 55, 60], [38, 50, 54, 57]], sc: [64, 67, 69, 71, 74, 76, 79],
+  play(t, bar, i, s, ch) { bass(t, ch[0] + (i % 2 ? 12 : 0), 0.5, 0.15);
+    if (i % 2 === 0) kick(t, 0.5); if (i === 2 || i === 6) snare(t, 0.26); if (i === 7 && bar === 3) snare(t, 0.18);
+    noiseHit(t, WN, 'highpass', 8200, 0.7, i % 2 ? 0.018 : 0.034, 0.04);
+    if (i === 0 || (i === 3 && bar % 2 === 1)) ch.slice(1).forEach((m, k) => lead(t + k * 0.006, m + 12, 0.045, 0.16, 'brass', 2600, false));
+    if (i === 0 && bar % 2 === 0) pad(t, ch.slice(1).map(m => m + 12), 0.025, 2.6, 'string', 2400);
+    if (bar === 3 && i >= 4) lead(t, s.sc[i - 2], 0.06, 0.12, 'brass', 3000, false); } };
 function setScene(id) { style = STYLES[id] ? id : 'title';
   if (!ctx) return; const w = WEATHER[style] || WEATHER.title, n = now();
   [rain.hg, rain.bg, rain.gg, rain.rg, rain.wg].forEach((g, i) => g && g.gain.setTargetAtTime(w[i], n, 1.5)); rain.drops = w[5]; }
@@ -295,6 +304,18 @@ const S = {
     noiseHit(t, WN, 'bandpass', 5200, 3, 0.12, 0.25, sfxG, 1.3); },
   polyFlat() { if (!ctx || !on) return; const t = now(); [50, 49].forEach((m, i) => { const g = ctx.createGain(); env(g, t + i * 0.02, 0.4, 0.05, 1.6, 1.2); const o = osc('sine', mtof(m + 12), t, t + 5, i * 9); o.frequency.exponentialRampToValueAtTime(mtof(m + 5), t + 2.6); chain(o, g, sfxG); }); },
   polyTrue() { if (!ctx || !on) return; const t = now(); [76, 81].forEach((m, i) => { const g = ctx.createGain(), tt = t + i * 0.09; env(g, tt, 0.002, 0.05, 0.05, 0.6); chain(osc('sine', mtof(m), tt, tt + 2), g, sfxG); }); },
+  // the chase
+  jump() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 1300, 0.9, 0.16, 0.2, sfxG, 1.4); const g = ctx.createGain(), o = osc('sine', 260, t, t + 0.3); o.frequency.exponentialRampToValueAtTime(520, t + 0.12); env(g, t, 0.004, 0.03, 0.06, 0.08); chain(o, g, sfxG); },
+  land(v) { if (!ctx || !on) return; const t = now(), k = Math.min(1, v || 0.5); const g = ctx.createGain(), o = osc('sine', 130, t, t + 0.4); o.frequency.exponentialRampToValueAtTime(48, t + 0.14); env(g, t, 0.002, 0.18 + k * 0.25, 0.05, 0.1); chain(o, g, sfxG); noiseHit(t, PN, 'lowpass', 1500, 0.8, 0.12 + k * 0.12, 0.12, sfxG, 0.9); },
+  step() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 700 + Math.random() * 500, 1.4, 0.07, 0.05, sfxG, 1.1); },
+  stumble() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 6; k++) noiseHit(t + k * 0.045 + Math.random() * 0.02, WN, 'bandpass', 1800 + Math.random() * 3000, 6, 0.12, 0.08, sfxG);
+    [0, 0.09].forEach(d => { const g = ctx.createGain(); env(g, t + d, 0.002, 0.05, 0.05, 0.35); chain(osc('square', 520 + Math.random() * 260, t + d, t + d + 1), biq('bandpass', 1400, 8), g, sfxG); }); this.land(0.9); },
+  gutter() { if (!ctx || !on) return; const t = now(); [1, 2.41, 3.77, 5.9].forEach((r, i) => { const g = ctx.createGain(); env(g, t, 0.001, 0.07 / (i + 1), 0.05, 0.9); chain(osc('sine', 330 * r, t, t + 2.5), g, sfxG); });
+    noiseHit(t + 0.05, WN, 'bandpass', 3200, 2, 0.09, 0.5, sfxG, 0.7); this.land(1); },
+  cuffs() { if (!ctx || !on) return; const t = now(); [0, 0.16].forEach(d => { noiseHit(t + d, WN, 'bandpass', 5200, 9, 0.35, 0.03, sfxG); const g = ctx.createGain(); env(g, t + d, 0.001, 0.05, 0.02, 0.1); chain(osc('square', 3100, t + d, t + d + 0.3), biq('bandpass', 3100, 12), g, sfxG); });
+    [52, 59, 64, 67, 71].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.32, 0.01, 0.06, 0.5, 0.8); chain(osc('brass', mtof(m), t + 0.32, t + 3, i * 5 - 10), biq('lowpass', 2800, 1), g, sfxG); }); },
+  escape() { if (!ctx || !on) return; const t = now(); [0, 0.25].forEach((d, k) => { const g = ctx.createGain(), o = osc('reed', mtof(k ? 64 : 69), t + d, t + d + 2); o.frequency.exponentialRampToValueAtTime(mtof(k ? 52 : 57), t + d + 1.4); env(g, t + d, 0.02, 0.07, 0.8, 0.5); chain(o, biq('lowpass', 1800), g, sfxG); });
+    [0, 0.5, 1].forEach(d => { const g = ctx.createGain(); env(g, t + 0.6 + d, 0.002, 0.04, 0.05, 0.6); chain(osc('sine', 1568, t + 0.6 + d, t + 2.8 + d), g, sfxG); }); },
   thunder, setTension,
 };
 root.NoirSnd = { start, setOn, setScene, isOn: () => on, started: () => started, ctx: () => ctx, sfx: S, style: () => style };

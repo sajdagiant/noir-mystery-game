@@ -342,3 +342,32 @@ label[data-hap] input{position:absolute;width:1px;height:1px;margin:0;visibility
 .pstrip span{display:block;font:700 10px "Courier New",monospace;letter-spacing:.15em;color:#3c230f;padding:3px 8px;background:#d9c9a2}
 .pstrip img{display:block;width:100%;height:auto}
 @media (max-height:600px){.lbpaper{height:28vh}.lbq{padding:5px 8px;font-size:13px}.lblever{height:60px}.lbport{width:48px;height:48px}}
+/* the chase */
+.chase{position:fixed;inset:0;z-index:85;overflow:hidden;background:#050408;color:#f4ecd8;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;animation:lbIn .3s ease-out}
+.chase.bye{opacity:0;transition:opacity .45s}
+.chase canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chtap{position:absolute;inset:0;z-index:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.chtap input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.chhead{position:absolute;z-index:2;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:14px;background:#000a;border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);box-shadow:0 0 24px color-mix(in srgb,var(--acc) 30%,transparent);pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.chport{width:52px;height:60px;border-radius:10px;overflow:hidden;flex:none;border:1px solid var(--acc)}.chport svg{width:100%;height:100%;display:block}
+.chinf{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.chinf small{font:700 10px/1.2 "Courier New",monospace;letter-spacing:.12em;color:var(--acc2)}
+.chinf b{font:900 22px/1.05 Georgia,serif;letter-spacing:.01em;text-shadow:0 0 12px var(--acc)}.chinf em{font-size:12.5px;line-height:1.25;color:#e8dcc4;font-style:italic}
+.chinf em.bad{color:#ff8a7a;font-style:normal;font-weight:700}.chinf em.good{color:#8ff0b8;font-style:normal;font-weight:700}
+.chclock{flex:none;text-align:center;min-width:48px}.chclock b{display:block;font:900 30px/1 "Courier New",monospace;color:#ffe9a8}.chclock small{font:700 9px "Courier New",monospace;letter-spacing:.2em;opacity:.7}
+.chclock.hot b{color:#ff4d4d;animation:chPulse .5s ease-in-out infinite alternate}
+@keyframes chPulse{to{transform:scale(1.18);text-shadow:0 0 14px #ff2b2b}}
+.chgap{position:absolute;z-index:2;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 96px);display:flex;align-items:center;gap:8px;pointer-events:none;font-size:18px}
+.chbar{flex:1;height:8px;border-radius:6px;background:#ffffff1c;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff22}.chbar i{display:block;height:100%;width:100%;margin-left:auto;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 10px var(--acc);transition:width .1s linear}
+.chgap b{font:700 12px "Courier New",monospace;min-width:52px;text-align:right;color:#ffe9a8}
+.chtip{position:absolute;z-index:2;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 70px);text-align:center;font:900 15px/1 "Courier New",monospace;letter-spacing:.14em;color:#fff;text-shadow:0 0 10px var(--acc),0 2px 0 #000;pointer-events:none;animation:chBlink 1s steps(2) infinite}
+.chtip.gone{opacity:0;transition:opacity .6s;animation:none}
+@keyframes chBlink{50%{opacity:.35}}
+.chskip{position:absolute;z-index:3;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 16px);background:#0009;color:#cfc6b4;border:1px solid #ffffff33;border-radius:999px;padding:9px 16px;font:600 12.5px system-ui,sans-serif}
+.chstamp{position:absolute;z-index:3;left:50%;top:36%;transform:translate(-50%,-50%) rotate(-9deg);font:900 54px/1 Georgia,serif;letter-spacing:.06em;padding:6px 18px;border:5px solid;border-radius:10px;pointer-events:none;animation:chStamp .38s cubic-bezier(.2,1.6,.4,1)}
+.chstamp.ok{color:#ffe36b;border-color:#ffe36b;text-shadow:0 0 22px #ffb300;background:#0008}.chstamp.bad{color:#ff5a5a;border-color:#ff5a5a;background:#0008}
+@keyframes chStamp{from{transform:translate(-50%,-50%) rotate(-9deg) scale(2.6);opacity:0}}
+.chcard{position:absolute;z-index:4;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 18px);padding:16px;border-radius:16px;background:linear-gradient(#1b1520f2,#0b0910f2);border:1px solid var(--acc);text-align:center;transform:translateY(120%);transition:transform .45s cubic-bezier(.2,1.2,.4,1)}
+.chcard.on{transform:none}.chcard small{font:700 10.5px "Courier New",monospace;letter-spacing:.14em;color:var(--acc2)}
+.chcard .chverd{font:900 48px/1.1 "Courier New",monospace;color:#ffe36b;text-shadow:0 0 18px #ffb300;margin:4px 0}.chcard.bad .chverd{color:#ff6a6a;text-shadow:0 0 14px #ff2b2b}
+.chcard p{margin:4px 0 12px;font-size:14px;line-height:1.4;color:#e8dcc4}
+@media (prefers-reduced-motion:reduce){.chtip,.chclock.hot b{animation:none}}
