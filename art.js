@@ -4,7 +4,7 @@
 function sh(hex, amt) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; const f = v => Math.max(0, Math.min(255, Math.round(v + amt))); return '#' + [f(r), f(g), f(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 let uid = 0;
 function portrait(a, o) {
-  o = o || {}; const mood = o.mood || 'neutral', acc = o.accent || '#ff3d7f', id = 'p' + (uid++);
+  o = o || {}; const mood = o.mood || 'neutral', acc = o.accent || '#e0a040', id = 'p' + (uid++);
   const skin = a.skin, sk2 = sh(skin, -38), sk3 = sh(skin, 18), hc = a.hc || '#222', out = a.out || '#333';
   const w = a.wide ? 1.12 : 1, rx = 37 * w, ry = 47;
   const ey = 108, ex = 17 * (a.wide ? 1.05 : 1);
@@ -52,7 +52,7 @@ function portrait(a, o) {
   const E = { neutral: { rx: 5.2, ry: 3, p: 2.2, lid: 0.35, br: [-1, 0] }, nervous: { rx: 5.6, ry: 4.6, p: 1.7, lid: 0, br: [-4, -2] }, smug: { rx: 5.2, ry: 3.2, p: 2.2, lid: 0.6, br: [-1, 1] }, caught: { rx: 6, ry: 5.8, p: 1.5, lid: 0, br: [-6, -3] }, angry: { rx: 5.2, ry: 3, p: 2.2, lid: 0.45, br: [3, 0] } }[mood] || { rx: 5.2, ry: 3, p: 2.2, lid: .35, br: [-1, 0] };
   [-1, 1].forEach(sd => {
     const cx = 100 + sd * ex; const dark = sd < 0 ? 0.0 : 0;
-    s += `<ellipse cx="${cx}" cy="${ey}" rx="${E.rx}" ry="${E.ry}" fill="#f1ece0"/><circle cx="${cx + sd * -0.5}" cy="${ey + 0.3}" r="${E.p}" fill="#14100e"/>`;
+    s += `<ellipse cx="${cx}" cy="${ey}" rx="${E.rx}" ry="${E.ry}" fill="#f1ece0"/><circle class="pu" cx="${cx + sd * -0.5}" cy="${ey + 0.3}" r="${E.p}" fill="#14100e"/>`;
     if (E.lid) s += `<path d="M${cx - E.rx - 1} ${ey - E.ry - 0.5}L${cx + E.rx + 1} ${ey - E.ry - 0.5}L${cx + E.rx + 1} ${ey - E.ry + E.ry * 2 * E.lid}Q${cx} ${ey - E.ry + E.ry * 2 * E.lid + 1.5} ${cx - E.rx - 1} ${ey - E.ry + E.ry * 2 * E.lid}Z" fill="${sk2}"/>`;
     const bi = E.br[0], bo = E.br[1];
     s += `<path d="M${cx - sd * -9} ${ey - 11 + (sd < 0 ? bo : bi) * 0.5}L${cx + sd * -9 * -1} ${ey - 11 + (sd < 0 ? bi : bo) * 0.5}" stroke="${hc === '#b4b6ba' || hc === '#b8b6b2' || hc === '#8d8f93' || hc === '#9a9a9a' ? '#777' : sh(hc, 0)}" stroke-width="3" stroke-linecap="round" fill="none" transform="translate(0 ${E.br[0] < -2 ? -2 : 0})"/>`;

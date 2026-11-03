@@ -264,6 +264,12 @@ const S = {
   puff() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 1400, 0.7, 0.22, 0.45, sfxG, 0.8); noiseHit(t + 0.05, WN, 'highpass', 5200, 0.6, 0.05, 0.35, sfxG);
     [79, 86, 91].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.18 + i * 0.06, 0.004, 0.05, 0.12, 0.9); chain(osc('sine', mtof(m), t + 0.18 + i * 0.06, t + 2.4), g, sfxG); }); },
   page() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 2200, 0.8, 0.12, 0.18, sfxG, 1.4); },
+  // tactile evidence: glass squeak (fog wipe), paper rip (ticket stub), match strike, UV ballast buzz, red-string twang
+  squeak(v) { if (!ctx || !on) return; const n = now(); if (n - lastBrush < 0.06) return; lastBrush = n; const f = 900 + Math.random() * 700 + Math.min(600, (v || 0) * 18), g = ctx.createGain(), o = osc('sine', f, n, n + 0.25); o.frequency.exponentialRampToValueAtTime(f * (1.12 + Math.random() * 0.2), n + 0.12); env(g, n, 0.01, 0.022, 0.08, 0.05); chain(o, biq('bandpass', f, 3), g, sfxG); noiseHit(n, PN, 'bandpass', 2600, 2, 0.018, 0.08, sfxG, 1.5); },
+  rip(v) { if (!ctx || !on) return; const n = now(); if (n - lastBrush < 0.035) return; lastBrush = n; noiseHit(n, WN, 'bandpass', 1600 + Math.random() * 2400, 1.4, 0.05 + Math.min(0.08, (v || 0) * 0.004), 0.05, sfxG, 0.8 + Math.random()); },
+  strike() { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'highpass', 3000, 0.8, 0.2, 0.12, sfxG, 1.3); noiseHit(t + 0.07, PN, 'lowpass', 900, 0.6, 0.28, 1.0, sfxG, 0.6); noiseHit(t + 0.1, PN, 'bandpass', 500, 0.7, 0.08, 1.6, sfxG, 0.4); },
+  buzz(v) { if (!ctx || !on) return; const t = now(); const g = ctx.createGain(); env(g, t, 0.02, 0.012 + (v || 0) * 0.02, 0.18, 0.12); chain(osc('sawtooth', 120, t, t + 0.5), biq('lowpass', 520, 2), g, sfxG); },
+  twang() { if (!ctx || !on) return; const t = now(); [0, 0.012].forEach((d, k) => { const f = k ? 330 : 220, g = ctx.createGain(), o = osc('triangle', f * 1.03, t + d, t + d + 1.4); o.frequency.exponentialRampToValueAtTime(f, t + d + 0.08); env(g, t + d, 0.002, 0.11, 0.14, 0.55); chain(o, biq('lowpass', 2400, 2), g, sfxG); }); },
   // séance: a theremin that follows the planchette, a hushed minor drone, glass tings on each letter, candles snuffed at the end
   seance(onOff) { if (!ctx) return; const t = now();
     if (onOff) {
