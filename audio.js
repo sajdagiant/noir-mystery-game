@@ -200,6 +200,12 @@ STYLES.chase = { bpm: 172, div: 2, swing: 0, ch: [[40, 52, 55, 59], [40, 52, 55,
     if (i === 0 || (i === 3 && bar % 2 === 1)) ch.slice(1).forEach((m, k) => lead(t + k * 0.006, m + 12, 0.045, 0.16, 'brass', 2600, false));
     if (i === 0 && bar % 2 === 0) pad(t, ch.slice(1).map(m => m + 12), 0.025, 2.6, 'string', 2400);
     if (bar === 3 && i >= 4) lead(t, s.sc[i - 2], 0.06, 0.12, 'brass', 3000, false); } };
+// the safe: instrumental only. Hushed heist vamp: pizzicato bass, brushed hat, a low tremolo string, a muted vibe that leaves room for the clicks
+STYLES.safe = { bpm: 92, div: 2, swing: 0.12, ch: [[38, 53, 57, 60], [38, 53, 57, 61], [36, 52, 55, 60], [37, 52, 56, 59]], sc: [62, 65, 67, 68, 69, 72],
+  play(t, bar, i, s, ch) { if (i === 0 || i === 3 || i === 6) bass(t, ch[0] + (i === 3 ? 7 : i === 6 ? 12 : 0), 0.32, 0.18);
+    if (i % 2 === 1) noiseHit(t, WN, 'highpass', 7800, 0.7, 0.012, 0.03); if (i === 4) brush(t, 0.04);
+    if (i === 0 && bar % 2 === 0) pad(t, ch.slice(1).map(m => m - 12), 0.02, 4.4, 'string', 700);
+    if (bar === 3 && (i === 2 || i === 5) && R() < 0.8) vibe(t, pk(s.sc), 0.025); } };
 function setScene(id) { style = STYLES[id] ? id : 'title';
   if (!ctx) return; const w = WEATHER[style] || WEATHER.title, n = now();
   [rain.hg, rain.bg, rain.gg, rain.rg, rain.wg].forEach((g, i) => g && g.gain.setTargetAtTime(w[i], n, 1.5)); rain.drops = w[5]; }
@@ -304,6 +310,21 @@ const S = {
     noiseHit(t, WN, 'bandpass', 5200, 3, 0.12, 0.25, sfxG, 1.3); },
   polyFlat() { if (!ctx || !on) return; const t = now(); [50, 49].forEach((m, i) => { const g = ctx.createGain(); env(g, t + i * 0.02, 0.4, 0.05, 1.6, 1.2); const o = osc('sine', mtof(m + 12), t, t + 5, i * 9); o.frequency.exponentialRampToValueAtTime(mtof(m + 5), t + 2.6); chain(o, g, sfxG); }); },
   polyTrue() { if (!ctx || !on) return; const t = now(); [76, 81].forEach((m, i) => { const g = ctx.createGain(), tt = t + i * 0.09; env(g, tt, 0.002, 0.05, 0.05, 0.6); chain(osc('sine', mtof(m), tt, tt + 2), g, sfxG); }); },
+  // the safe
+  dial(k) { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'bandpass', 3800 + (k || 0) * 60, 9, 0.07, 0.012, sfxG); const g = ctx.createGain(); env(g, t, 0.001, 0.02, 0.01, 0.03); chain(osc('square', 2400 + (k || 0) * 20, t, t + 0.1), biq('bandpass', 2600, 10), g, sfxG); },
+  tumbler() { if (!ctx || !on) return; const t = now(); const g = ctx.createGain(), o = osc('sine', 210, t, t + 0.5); o.frequency.exponentialRampToValueAtTime(95, t + 0.09); env(g, t, 0.001, 0.4, 0.03, 0.08); chain(o, g, sfxG);
+    noiseHit(t, WN, 'bandpass', 1200, 6, 0.3, 0.035, sfxG); [1, 2.7].forEach((r, i) => { const gg = ctx.createGain(); env(gg, t, 0.001, 0.03 / (i + 1), 0.02, 0.18); chain(osc('sine', 880 * r, t, t + 0.6), gg, sfxG); }); },
+  wheelSet(n) { if (!ctx || !on) return; const t = now(); this.tumbler(); const g = ctx.createGain(), o = osc('sine', 120, t + 0.04, t + 0.6); o.frequency.exponentialRampToValueAtTime(48, t + 0.25); env(g, t + 0.04, 0.002, 0.6, 0.08, 0.14); chain(o, g, sfxG);
+    noiseHit(t + 0.04, PN, 'lowpass', 600, 1, 0.5, 0.1, sfxG); const m = [69, 72, 76][Math.min(2, n || 0)], g2 = ctx.createGain(); env(g2, t + 0.12, 0.002, 0.05, 0.08, 1.1); chain(osc('sine', mtof(m), t + 0.12, t + 3), g2, sfxG); },
+  wheelBad() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 5; k++) noiseHit(t + k * 0.035, WN, 'bandpass', 900 + Math.random() * 1400, 7, 0.16, 0.04, sfxG); const g = ctx.createGain(); env(g, t, 0.005, 0.06, 0.12, 0.15); chain(osc('reed', 98, t, t + 0.6), biq('lowpass', 700), g, sfxG); },
+  safeOpen() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 500, 2, 0.6, 0.25, sfxG, 0.6); // the bolts slide back
+    const g = ctx.createGain(), o = osc('sawtooth', 70, t + 0.3, t + 2.2); o.frequency.setValueAtTime(70, t + 0.3); o.frequency.linearRampToValueAtTime(92, t + 0.9); o.frequency.linearRampToValueAtTime(64, t + 1.6); // the hinge
+    env(g, t + 0.3, 0.1, 0.05, 1.1, 0.3); chain(o, biq('bandpass', 1100, 9), g, sfxG);
+    [50, 57, 62, 66, 69, 74].forEach((m, i) => { const gg = ctx.createGain(); env(gg, t + 0.9 + i * 0.05, 0.01, 0.05, 0.7, 1); chain(osc('brass', mtof(m), t + 0.9 + i * 0.05, t + 4, i * 4 - 8), biq('lowpass', 2600, 1), gg, sfxG); }); },
+  boom() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 500, 0.7, 1.4, 1.6, sfxG, 0.5); noiseHit(t, WN, 'highpass', 2000, 0.5, 0.4, 0.3, sfxG);
+    const g = ctx.createGain(), o = osc('sine', 90, t, t + 2); o.frequency.exponentialRampToValueAtTime(28, t + 0.9); env(g, t, 0.003, 1, 0.3, 0.6); chain(o, g, sfxG);
+    for (let k = 0; k < 14; k++) noiseHit(t + 0.4 + Math.random() * 1.2, WN, 'bandpass', 2000 + Math.random() * 4000, 8, 0.05 + Math.random() * 0.08, 0.05, sfxG); }, // debris
+  fuse() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 22; k++) noiseHit(t + k * 0.07 + Math.random() * 0.03, WN, 'highpass', 5000 + Math.random() * 3000, 1, 0.03 + Math.random() * 0.04, 0.04, sfxG); },
   // the chase
   jump() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 1300, 0.9, 0.16, 0.2, sfxG, 1.4); const g = ctx.createGain(), o = osc('sine', 260, t, t + 0.3); o.frequency.exponentialRampToValueAtTime(520, t + 0.12); env(g, t, 0.004, 0.03, 0.06, 0.08); chain(o, g, sfxG); },
   land(v) { if (!ctx || !on) return; const t = now(), k = Math.min(1, v || 0.5); const g = ctx.createGain(), o = osc('sine', 130, t, t + 0.4); o.frequency.exponentialRampToValueAtTime(48, t + 0.14); env(g, t, 0.002, 0.18 + k * 0.25, 0.05, 0.1); chain(o, g, sfxG); noiseHit(t, PN, 'lowpass', 1500, 0.8, 0.12 + k * 0.12, 0.12, sfxG, 0.9); },

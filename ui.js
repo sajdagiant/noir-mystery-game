@@ -27,7 +27,7 @@ const UA = navigator.userAgent || '';
 const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const canVib = typeof navigator.vibrate === 'function';
 const Hap = { on: store.get('hap', true) && (isIOS || canVib), last: 0, can: isIOS || canVib };
-const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40], dust: 6, pulse: 7, lift: [12, 40, 12, 40, 60] };
+const PAT = { tap: 9, link: [14, 50, 22], crack: [30, 40, 80], miss: [70, 60, 70], planted: [20, 40, 20, 40, 20], heavy: [90, 70, 160], accuse: [35, 110, 35, 110, 35, 220], win: [20, 70, 20, 70, 140], lose: [260], beat: [28, 150, 40], dust: 6, pulse: 7, lift: [12, 40, 12, 40, 60], boom: [220, 60, 120, 60, 320] };
 function hap(kind) {
   if (!Hap.on || !canVib || isIOS) return; const n = performance.now();
   if ((kind === 'tap' && n - Hap.last < 60) || (kind === 'dust' && n - Hap.last < 90) || (kind === 'pulse' && n - Hap.last < 200)) return; Hap.last = n;
@@ -171,9 +171,9 @@ function renderScene() {
     const owner = G.people.find(p => p.place && p.place.id === l.id && G.met[p.idx]);
     const em = l.scene ? 'THE BODY · FREE' : l.searched ? 'SEARCHED ✓' : l.lead ? 'NEW LEAD · 1 MOVE' : (owner ? esc(owner.short.toUpperCase()) + '\'S ALIBI · 1 MOVE' : 'SEARCH · 1 MOVE');
     return `<button class="loc ${l.searched && !l.scene ? 'done' : ''} ${l.lead && !l.searched ? 'lead' : ''} ${first && l.scene ? 'start' : ''}" data-id="${l.id}"><span class="ic">${l.icon}</span><span><b>${esc(l.name)}</b><em>${em}</em></span></button>`; }).join('')}</div>
-  ${seanceBtn('seBtn')}<button class="hintbtn" id="hintBtn">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  ${seanceBtn('seBtn')}${safeBtn('sfBtn')}<button class="hintbtn" id="hintBtn">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
   $$('#v-scene .loc').forEach(b => b.onclick = () => doSearch(b.dataset.id));
-  $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance;
+  $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance; $('#sfBtn').onclick = doSafe;
 }
 function renderSuspects() {
   $('#v-suspects').innerHTML = `<div class="cards">${G.people.map(p => { const [c, tx] = chipFor(p.idx); return `<button class="sc" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: G.nerve[p.idx] >= 2 ? 'nervous' : 'neutral', nerve: G.nerve[p.idx], label: p.name })}${G.met[p.idx] ? '' : '<span class="new">NEW</span>'}</div><div class="inf"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span><span class="chip ${c}">${tx}</span></div></button>`; }).join('')}</div>`;
@@ -181,7 +181,7 @@ function renderSuspects() {
 }
 function renderBoard() {
   const clues = E.clueList(G);
-  let h = (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>Somebody in this room smells of it.</small></div></div>` : '') + `<div class="cork"><div class="pinhint">${armed ? 'Now tap the statement it contradicts ↓' : 'Tap a clue, then tap the lie it breaks.'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pinhint" style="color:#f0e2c0;font-size:13px;margin-top:6px">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
+  let h = safeNote() + (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>Somebody in this room smells of it.</small></div></div>` : '') + `<div class="cork"><div class="pinhint">${armed ? 'Now tap the statement it contradicts ↓' : 'Tap a clue, then tap the lie it breaks.'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pinhint" style="color:#f0e2c0;font-size:13px;margin-top:6px">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
   G.people.forEach(p => {
     const [c, tx] = chipFor(p.idx), sts = E.statementsFor(G, p.idx);
     h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
@@ -191,7 +191,7 @@ function renderBoard() {
     if (G.notes[p.idx].length) h += `<div class="dos"><ul>${G.notes[p.idx].map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`;
     h += `</div></div>`;
   });
-  h += seanceBtn('seBtn2') + `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  h += seanceBtn('seBtn2') + safeBtn('sfBtn2') + `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
   $('#v-board').innerHTML = h;
   $$('#v-board .pin').forEach(b => b.onclick = () => { if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
   $$('#v-board .fh').forEach(b => b.onclick = () => openInterview(+b.dataset.i));
@@ -201,7 +201,7 @@ function renderBoard() {
     if (s.broken) return toast('That lie is already broken.');
     const c = armed; armed = null; S.sfx.link(); hap('link'); openInterview(s.who, c);
   });
-  $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance;
+  $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance; $('#sfBtn2').onclick = doSafe;
 }
 
 /* ---------- clues, search, hints ---------- */
@@ -487,6 +487,104 @@ function runSeance(r) {
     };
     raf = requestAnimationFrame(step);
   });
+}
+
+/* ---------- the wall safe: spin the dial by ear, feel for the tumblers, set three wheels. Or blow the door off. ---------- */
+const SAFE_DIRS = [1, -1, 1]; // right (clockwise), left, right
+function safeBtn(id) {
+  if (G.safe) return `<button class="sfbtn used" id="${id}"><span>🔓</span><span><b>Safe ${G.safe.how === 'blow' ? 'blown' : 'cracked'}: frame 17 is on the Board</b><small>${esc(G.people[G.safe.idx].short)} is in the photograph. Not the killer.</small></span></button>`;
+  return `<button class="sfbtn" id="${id}"><span>🔐</span><span><b>Crack ${esc(G.V.short)}'s wall safe</b><small>By ear: 1 move · +${E.SAFE_BONUS} pts · or blow it: 2 moves · once</small></span></button>`;
+}
+function safeNote() {
+  if (!G.safe) return '';
+  const p = G.people[G.safe.idx], o = G.people.find(x => x.idx !== p.idx && G.notes[x.idx].some(n => n.kind === 'safe'));
+  return `<div class="safenote ${G.safe.how === 'blow' ? 'blown' : 'clean'}"><div class="neg">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><div><b>${G.safe.how === 'blow' ? '🧨 FROM THE BLOWN SAFE' : '🔐 FROM THE SAFE'}</b><p>${esc(G.safe.text)}</p></div></div>`;
+}
+async function doSafe() {
+  if (busy || G.over) return;
+  if (G.safe) { S.sfx.tap(); return toast('🔓 Already open. Frame 17 is pinned to the Board.'); }
+  const ok = await modal(`<div class="dark safepre"><div class="crystal">🔐</div><h3>THE WALL SAFE</h3><p>Behind a bad oil painting in ${esc(G.V.short)}'s office: a Mosler, 1931, forty numbers on the dial. The house photographer swears the night's contact sheet is in there.</p><ul class="ul"><li><b>Crack it by ear</b> (1 move, +${E.SAFE_BONUS} pts): turn the dial <b>RIGHT ↻</b>, then <b>LEFT ↺</b>, then <b>RIGHT ↻</b>. Go slow. When a tumbler lines up you'll hear (and see) a heavy <b>CLUNK</b>. Stop and hit <b>SET</b>.</li><li>Or <b>blow it</b> with Lefty's dynamite: 2 moves, no bonus.</li><li>Sound on helps. Walk away any time, free.</li></ul><button class="btn" data-r="go">Swing the painting aside</button><button class="btn alt" data-r="no">Leave it</button></div>`);
+  if (ok !== 'go') return;
+  busy = true; if (S.setScene) S.setScene('safe');
+  const how = await runSafe();
+  if (S.setScene) S.setScene(G.st.id);
+  if (!how) { busy = false; renderAll(); return; }
+  const r = E.safe(G, how); if (!r.ok) { busy = false; renderAll(); return; }
+  boardNew++; updateHud(true);
+  await showSafeCard(r);
+  renderAll(); await afterAction(r.events); busy = false;
+}
+function runSafe() {
+  return new Promise(done => {
+    const combo = E.safeCombo(G), N = E.SAFE_N, auto = FAST || /[?&]autosafe\b/.test(location.search);
+    const ov = document.createElement('div'); ov.className = 'safe'; ov.id = 'safe';
+    const ticks = Array.from({ length: N }, (_, i) => `<line x1="100" y1="${i % 5 ? 14 : 10}" x2="100" y2="${i % 5 ? 22 : 26}" transform="rotate(${i * 360 / N} 100 100)"/>`).join('');
+    const nums = Array.from({ length: N / 5 }, (_, k) => `<text x="100" y="40" transform="rotate(${k * 5 * 360 / N} 100 100)">${k * 5}</text>`).join('');
+    ov.innerHTML = `<div class="sfhead"><small>THE WALL SAFE · ${esc(G.st.name.toUpperCase())}</small><b>Crack it by ear</b><em id="sfMsg">Wheel 1: turn RIGHT ↻ until it clunks.</em></div>
+      <div class="sfwheels">${[0, 1, 2].map(i => `<div class="sfw" data-w="${i}"><i>${SAFE_DIRS[i] > 0 ? '↻' : '↺'}</i><b>?</b><small>${SAFE_DIRS[i] > 0 ? 'RIGHT' : 'LEFT'}</small></div>`).join('')}</div>
+      <div class="sfscope"><canvas id="sfScope"></canvas><span>🩺 STETHOSCOPE</span></div>
+      <div class="sfdoor" id="sfDoor"><div class="sfriv">${Array.from({ length: 8 }, (_, i) => `<i style="--a:${i * 45}deg"></i>`).join('')}</div><div class="sfbrand">MOSLER &amp; SONS · 1931</div>
+        <div class="sfidx">▼</div><div class="sfdial" id="sfDial"><svg viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="sfG" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#f5f1e6"/><stop offset=".55" stop-color="#b8b2a4"/><stop offset="1" stop-color="#4c4840"/></radialGradient></defs><circle cx="100" cy="100" r="96" fill="url(#sfG)" stroke="#2a2620" stroke-width="3"/><g class="tk">${ticks}</g><g class="nm">${nums}</g><circle cx="100" cy="100" r="44" fill="#26231e" stroke="#8a836f" stroke-width="2"/><circle cx="100" cy="100" r="30" fill="url(#sfG)"/><path d="M100 58v14" stroke="#c8102e" stroke-width="5" stroke-linecap="round"/></svg></div><div class="sfnum" id="sfNum">0</div>
+        <div class="sfin" id="sfIn"></div></div>
+      <div class="sfact"><button class="btn sfset" id="sfSet">🔒 SET WHEEL 1</button><div class="sfrow"><button class="sfblow" id="sfBlow">🧨 Blow it · 2 moves</button><button class="sfaway" id="sfAway">Walk away</button></div></div>`;
+    document.body.appendChild(ov); hap('heavy'); S.sfx.page();
+    const dial = $('#sfDial'), numEl = $('#sfNum'), msg = $('#sfMsg'), setB = $('#sfSet'), cv = $('#sfScope'), cx = cv.getContext('2d');
+    const dpr = Math.min(2, devicePixelRatio || 1); const sz = () => { cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; }; sz();
+    let ang = 0, lastN = 0, dir = 0, w = 0, misses = 0, drag = null, closed = false, raf = 0, energy = 0, ring = 0, ph = 0, contact = 0, t0 = performance.now(), last = t0, moved = 0;
+    const scope = new Float32Array(160);
+    const numAt = a => (((Math.round(-a / (360 / N))) % N) + N) % N;
+    const cdist = (a, b) => { const d = Math.abs(a - b) % N; return Math.min(d, N - d); };
+    const setDial = () => { dial.style.transform = `rotate(${ang}deg)`; const n = numAt(ang); numEl.textContent = n;
+      if (n !== lastN) { // one click per number crossed
+        const steps = Math.min(6, cdist(n, lastN)); for (let s = 1; s <= steps; s++) { const m = ((lastN + (dir > 0 ? -s : s)) % N + N) % N; click(m); }
+        lastN = n; } };
+    const click = m => { moved++;
+      if (w < 3 && m === combo[w] && dir === SAFE_DIRS[w]) { S.sfx.tumbler(); energy = 1; ring = 1; contact = 1; hap('tap'); ov.classList.remove('thunk'); void ov.offsetWidth; ov.classList.add('thunk'); }
+      else { S.sfx.dial(m % 7); energy = Math.max(energy, 0.18 + (w < 3 && cdist(m, combo[w]) <= 2 && dir === SAFE_DIRS[w] ? 0.12 : 0)); } };
+    const angOf = e => { const r = dial.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+    dial.addEventListener('pointerdown', e => { if (closed || w >= 3) return; e.preventDefault(); drag = angOf(e); try { dial.setPointerCapture(e.pointerId); } catch (_) {} ov.classList.add('grip'); });
+    dial.addEventListener('pointermove', e => { if (drag === null) return; const a = angOf(e); let d = a - drag; if (d > 180) d -= 360; if (d < -180) d += 360; drag = a; if (Math.abs(d) < 0.01) return;
+      const nd = d > 0 ? 1 : -1; if (nd !== dir) { dir = nd; hintDir(); } ang += d; setDial(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => dial.addEventListener(k, () => { drag = null; ov.classList.remove('grip'); }));
+    const hintDir = () => { if (w >= 3) return; const good = dir === SAFE_DIRS[w]; ov.classList.toggle('wrongway', !good); if (!good) msg.textContent = 'Wrong way. Wheel ' + (w + 1) + ' turns ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '.'; else msg.textContent = 'Wheel ' + (w + 1) + ': keep turning ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '. Listen for the clunk.'; };
+    const wheelEl = i => ov.querySelector(`.sfw[data-w="${i}"]`);
+    const doSet = () => { if (closed || w >= 3) return; const n = numAt(ang);
+      if (cdist(n, combo[w]) <= 1 && dir === SAFE_DIRS[w]) {
+        const el = wheelEl(w); el.classList.add('ok'); el.querySelector('b').textContent = combo[w]; S.sfx.wheelSet(w); hap('crack'); w++; energy = 1; ring = 1.3;
+        ov.classList.remove('wrongway'); dir = 0;
+        if (w < 3) { msg.textContent = 'Wheel ' + w + ' set at ' + combo[w - 1] + '. Wheel ' + (w + 1) + ': turn ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '.'; setB.textContent = '🔒 SET WHEEL ' + (w + 1); wheelEl(w).classList.add('on'); }
+        else openUp('crack');
+      } else { misses++; S.sfx.wheelBad(); hap('miss'); ov.classList.remove('shake'); void ov.offsetWidth; ov.classList.add('shake');
+        msg.textContent = (dir !== SAFE_DIRS[w] ? 'The wheel slips. Turn it ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + ' first.' : 'Nothing caught at ' + n + '. Go back, slower. Wait for the heavy CLUNK.') + (misses >= 4 ? ' (Or blow it.)' : '');
+        if (misses >= 4) $('#sfBlow').classList.add('pulse'); } };
+    setB.onclick = doSet;
+    $('#sfAway').onclick = () => { if (closed) return; close(null); };
+    $('#sfBlow').onclick = () => { if (closed || w >= 3) return; w = 3; blow(); };
+    wheelEl(0).classList.add('on');
+    const close = how => { closed = true; cancelAnimationFrame(raf); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(how); }, FAST ? 0 : 420); };
+    const openUp = how => { setB.disabled = true; msg.textContent = how === 'blow' ? 'Well. That\'s one way.' : 'All three wheels. Throw the handle.';
+      setTimeout(() => { S.sfx.safeOpen(); hap('lift'); ov.classList.add('open'); if (window.NoirFx && how !== 'blow') NoirFx.flash(); setTimeout(() => close(how), FAST ? 0 : 1700); }, FAST ? 0 : how === 'blow' ? 200 : 650); };
+    const blow = () => { setB.disabled = true; $('#sfBlow').disabled = true; ov.classList.add('fuse'); msg.textContent = 'Lefty lights the fuse. Everybody down!'; S.sfx.fuse();
+      setTimeout(() => { S.sfx.boom(); S.sfx.thunder(true); hap('boom'); ov.classList.remove('fuse'); ov.classList.add('boom'); if (window.NoirFx) NoirFx.flash(); energy = 1; ring = 2; openUp('blow'); }, FAST ? 0 : 1600); };
+    // the stethoscope trace + the auto-cracker for tests and demos
+    let ai = { w: 0, phase: 'spin', t: 0, spun: 0 };
+    const step = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (auto && !closed && w < 3) { const tgt = combo[w], d = SAFE_DIRS[w];
+        if (ai.phase === 'spin') { dir !== d && (dir = d); const before = numAt(ang); ang += d * (FAST ? 40 : 160) * dt; ai.spun += (FAST ? 40 : 160) * dt; setDial(); if (ai.spun > 200 && cdist(numAt(ang), tgt) === 0 && before !== undefined) { ai.phase = 'set'; ai.t = 0; } }
+        else if ((ai.t += dt) > (FAST ? 0 : 0.35)) { doSet(); ai = { w, phase: 'spin', t: 0, spun: 0 }; } }
+      ph += dt; energy *= Math.pow(0.02, dt); ring *= Math.pow(0.15, dt); contact *= Math.pow(0.1, dt);
+      scope.copyWithin(0, 1); scope[scope.length - 1] = (Math.random() * 2 - 1) * (0.04 + energy) + Math.sin(ph * 70) * ring * 0.6;
+      const W2 = cv.width, H2 = cv.height; cx.clearRect(0, 0, W2, H2); cx.strokeStyle = contact > 0.2 ? '#ffd36b' : '#7dffb0'; cx.lineWidth = 1.6 * dpr; cx.shadowColor = cx.strokeStyle; cx.shadowBlur = 8 * dpr; cx.beginPath();
+      for (let i = 0; i < scope.length; i++) { const x = i / (scope.length - 1) * W2, y = H2 / 2 - scope[i] * H2 * 0.45; i ? cx.lineTo(x, y) : cx.moveTo(x, y); } cx.stroke();
+      ov.style.setProperty('--contact', contact.toFixed(2));
+      if (!closed) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  });
+}
+async function showSafeCard(r) {
+  const p = G.people[r.idx], o = G.people.find(x => x.idx !== p.idx && G.notes[x.idx].some(n => n.kind === 'safe'));
+  S.sfx.page(); hap('lift');
+  await modal(`<div class="dark safecard ${r.how === 'blow' ? 'blown' : 'clean'}"><small>${r.how === 'blow' ? '🧨 WHAT SURVIVED THE BLAST' : '🔓 INSIDE THE SAFE'}</small><div class="neg big">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><p id="sfTx"></p><ul class="ul"><li>Pinned to the Board.${r.how === 'crack' ? ' <b>+' + E.SAFE_BONUS + ' pts</b> for a clean job.' : ''}</li></ul><button class="btn" data-r="ok">Pin it</button></div>`, () => typeText($('#sfTx'), r.text, 12));
 }
 
 /* ---------- the lie box: a 1940s polygraph. Hold the lever, the chart paper rolls, three pens draw the suspect's pulse, breath and sweat ---------- */
@@ -788,7 +886,7 @@ async function showResult(res) {
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
   <div class="sgrid"><div><b>${res.stats.left}</b>moves left</div><div><b>${res.stats.cracks}</b>lies cracked</div><div><b>${res.stats.bluffs}</b>bad guesses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>proof</div></div>
-  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 You collared ' + esc(who.short) + ' on the rooftops in ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 You let the uniforms do the running.' : '🏃 ' + esc(who.short) + ' outran you over the rooftops.'}</p>` : ''}
+  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.safe ? `<p class="rline">${res.stats.safe === 'crack' ? '🔐 You cracked the safe by ear. +' + E.SAFE_BONUS : '🧨 You blew the safe. Lefty sends his regards.'}</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 You collared ' + esc(who.short) + ' on the rooftops in ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 You let the uniforms do the running.' : '🏃 ' + esc(who.short) + ' outran you over the rooftops.'}</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
   <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
@@ -832,6 +930,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, setView, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
+window.__noir = { get G() { return G; }, E, newGame, setView, safe: doSafe, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

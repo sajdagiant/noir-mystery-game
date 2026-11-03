@@ -365,6 +365,33 @@ function polygraph(g, i) {
   return { ok: true, cost: 1, qs, bpm, murder, story: storyLie, verdict, left: polyLeft(g), events };
 }
 
+/* ---------- the wall safe: once per case, crack the victim's safe by ear (1 move) or blow it (2 moves). Inside: the house photographer's contact sheet, which clears one innocent. ---------- */
+const SAFE_N = 40;
+function safeCombo(g) { const r = mulberry(((g.seed >>> 0) * 2654435761 ^ 0x5AFE) >>> 0), a = [];
+  while (a.length < 3) { const n = 4 + Math.floor(r() * 33); if (a.every(x => Math.abs(x - n) > 5) && (a.length !== 1 || Math.abs(n - a[0]) > 8)) a.push(n); } return a; }
+function safePick(g) { // who the photograph clears: the red herring if there is one, else whoever is still under suspicion
+  const inn = g.people.filter(p => p.role !== 'K');
+  if (g.L) return g.L; if (g.F && !g.planted) return g.F;
+  const open = inn.filter(p => g.status[p.idx] !== 'holds' && !g.stmts['st_claim_' + p.idx].broken);
+  const pool = open.length ? open : inn; return pool[((g.seed >>> 0) * 31 + 7) % pool.length];
+}
+function safe(g, how) {
+  if (locked(g)) return { ok: false, error: 'dawn' };
+  if (g.safe) return { ok: false, error: 'used' };
+  const p = safePick(g), Tr = fmt(g.Treal), other = p.role === 'P1' ? g.P2 : p.role === 'P2' ? g.P1 : null;
+  const where = other ? fill('{p} and {o}, heads together in {spot}', { p: p.short, o: other.short, spot: g.spot })
+    : p.role === 'S' ? fill('{p} on the line at {cs}, receiver to one ear', { p: p.short, cs: g.st.callSpot })
+    : fill('{p} in the {pl}, looking bored', { p: p.short, pl: p.place.name });
+  const text = fill('The house photographer\'s contact sheet, locked in {v}\'s safe for the morning papers. Frame 17, flash-stamped {t}, the minute {v} died: {w}. Whoever did it, it wasn\'t {s}.', { v: g.V.short, t: Tr, w: where, s: other ? p.short + ' or ' + other.short : p.short });
+  const cost = how === 'blow' ? 2 : 1;
+  g.safe = { idx: p.idx, how: how === 'blow' ? 'blow' : 'crack', text };
+  addNote(g, p.idx, '🔐 From the safe: photographed ' + (other ? 'with ' + other.short + ' in ' + g.spot : p.role === 'S' ? 'on the phone at ' + g.st.callSpot : 'in the ' + p.place.name) + ' at ' + Tr + '. Not the killer.', 'safe');
+  if (other) addNote(g, other.idx, '🔐 From the safe: photographed with ' + p.short + ' in ' + g.spot + ' at ' + Tr + '. Not the killer.', 'safe');
+  const events = spend(g, cost);
+  return { ok: true, cost, idx: p.idx, text, how: g.safe.how, events };
+}
+const SAFE_BONUS = 60;
+
 /* ---------- accusation ---------- */
 function accuse(g, i, proofId) {
   if (g.over) return { ok: false, error: 'over' };
@@ -378,7 +405,7 @@ function accuse(g, i, proofId) {
   let score = 0;
   if (win) {
     score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0) - Object.keys(g.poly || {}).length * 40
-      + (g.confSeen && g.confBroken ? 100 : 0) + (g.variant === 'frame' && g.planted ? 60 : 0) + (g.variant === 'staged' && g.stmts['st_call_' + K.idx] && g.stmts['st_call_' + K.idx].broken ? 60 : 0);
+      + (g.safe && g.safe.how === 'crack' ? SAFE_BONUS : 0) + (g.confSeen && g.confBroken ? 100 : 0) + (g.variant === 'frame' && g.planted ? 60 : 0) + (g.variant === 'staged' && g.stmts['st_call_' + K.idx] && g.stmts['st_call_' + K.idx].broken ? 60 : 0);
     score = Math.max(100, score);
   } else score = clueList(g).length * 20;
   const rank = win ? D.RANKS.find(r => score >= r.min) : { name: 'Cold Case', icon: '🥶', line: p.short + ' walked. ' + K.short + ' laughed all the way home.' };
@@ -406,10 +433,10 @@ function accuse(g, i, proofId) {
       x.role === 'L' ? 'Slipped out the ' + st.exit.name + ' at 10:28, after it was already done. Innocent, and very unlucky.' :
       'Was on a phone call from ' + st.callSpot + '.' + (g.F && g.F.idx === x.idx ? ' Framed.' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
-    stats: { poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
+    stats: { safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
 function clock(g) { return fmt(START + g.t * 15); }
 
-const API = { polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
+const API = { safe, safeCombo, safePick, SAFE_N, SAFE_BONUS, polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Noir = API;
 })(typeof window !== 'undefined' ? window : globalThis);
