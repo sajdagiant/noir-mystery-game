@@ -16,9 +16,9 @@ const store = {
 const today = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 
 /* ---------- palette ---------- */
-const PAL_KEYS = ['bg', 'panel', 'line', 'fg', 'mut', 'acc', 'acc2', 'gold'];
+const PAL_KEYS = ['bg', 'panel', 'line', 'fg', 'mut', 'acc', 'acc2', 'gold', 'red'];
 function setPal(p) { const r = document.documentElement.style; PAL_KEYS.forEach(k => { if (p && p[k]) r.setProperty('--' + k, p[k]); else r.removeProperty('--' + k); });
-  const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', (p && p.bg) || '#0d0912'); }
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', (p && p.bg) || '#0a0a0b'); }
 
 /* ---------- haptics ---------- */
 // Android: navigator.vibrate patterns. iOS Safari has no vibrate API, but a real tap that toggles an <input type=checkbox switch>
@@ -71,7 +71,7 @@ function typeText(el, text, speed) {
     step();
   });
 }
-function scrollLog() { const l = $('#iLog'); if (l && !$('#interview').hidden) l.scrollTop = l.scrollHeight; }
+function scrollLog() { const l = $('#iLog'); if (!l) return; const ms = [...l.children]; ms.forEach((m, k) => m.classList.toggle('old', k < ms.length - 3)); if (!$('#interview').hidden) l.scrollTop = l.scrollHeight; }
 function modal(html, onShow) {
   return new Promise(res => {
     const m = $('#modal'), b = $('#mbox'); b.innerHTML = html; m.hidden = false; m.scrollTop = 0;
@@ -85,17 +85,14 @@ function showTitle() {
   over = false; $('#hud').hidden = true; $('#game').hidden = true; $('#intro').hidden = true; $('#interview').hidden = true; $('#result').hidden = true; $('#modal').hidden = true; $('#sheet').hidden = true;
   const st = store.get('stats', { played: 0, solved: 0, best: 0, streak: 0 }), dl = store.get('daily', {}), friend = (location.search.match(/[?&]c=(\d+)/) || [])[1];
   const t = $('#title'); t.hidden = false; t.scrollTop = 0; setPal(null); if (S.setScene) S.setScene('title');
-  t.innerHTML = `<div class="tbanner">${A.skyline('title', '#ff3d7f', ['#1a0b1a', '#0b0710'], 'club', 400, 210)}</div>
+  t.innerHTML = `<div class="tbanner">${A.skyline('title', '#e0a040', ['#14100c', '#08070a'], 'club', 400, 210)}<div class="smoke" aria-hidden="true"><i></i><i></i><i></i></div></div>
   <div class="tcard"><p class="kicker">A five-minute murder</p><h1 class="logo">NOIR<small>last call</small></h1>
-  <p class="sub">Four suspects. Four lies. One night, one clock, and the rain won't quit.</p>
-  ${friend ? `<button class="cta" id="bFriend" data-now>Play case #${esc(friend)}<small>a friend sent you this one</small></button>` : ''}
-  <button class="cta ${friend ? 'alt' : ''}" id="bPlay" data-now>${friend ? 'Random case' : 'Open a case'}<small>${friend ? '' : 'a fresh murder every time'}</small></button>
+  ${HOWI}
+  ${friend ? `<button class="cta" id="bFriend" data-now>Case #${esc(friend)}<small>from a friend</small></button>` : ''}
+  <button class="cta ${friend ? 'alt' : ''}" id="bPlay" data-now>${friend ? 'Random case' : 'Open a case'}</button>
   <button class="cta alt" id="bDaily" data-now>📅 Today's case ${dl.date === today() ? '· ' + (dl.win ? '✓ ' + dl.rank : 'tried') : ''}</button>
-  <div class="hallo">📈 <b>New: the lie box.</b> Strap a suspect in, hold the lever, watch the needles.</div>
-  ${isHalloween() ? `<div class="hallo">🎃 <b>Halloween night.</b> The dead are talking. Hold a <b>séance</b> in any case 👻</div>` : ''}
   <div class="toggles"><button class="tg ${S.isOn() ? 'on' : ''}" id="tSnd" data-now>${S.isOn() ? '🔊 Sound on' : '🔇 Sound off'}</button>${Hap.can ? `<button class="tg" data-haptgl>📳 Haptics</button>` : ''}</div>
-  <ul class="how"><li><b>Search</b> rooms for evidence. Each move burns 15 minutes. Dawn is your deadline.</li><li><b>Everyone lies</b>. Show the right evidence to break a lie. Wrong guesses cost double.</li><li>Cracked liars talk. But an alibi that checks out can still be a lie, and the obvious clue can be a plant. Trust nothing, not even the clock.</li></ul>
-  <div class="stats">${st.played ? `CASES ${st.played} · SOLVED ${st.solved} · BEST ${st.best} · STREAK ${st.streak}` : 'NO CASES YET. THE CITY IS WAITING.'}</div></div>`;
+  <div class="stats">${st.played ? `🗂 ${st.played} · ✓ ${st.solved} · ★ ${st.best} · 🔥 ${st.streak}` : 'The city is waiting.'}</div></div>`;
   $('#tSnd').onclick = () => { S.start(); S.setOn(!S.isOn()); const b = $('#tSnd'); b.classList.toggle('on', S.isOn()); b.firstChild.textContent = S.isOn() ? '🔊 Sound on' : '🔇 Sound off'; };
   $$('[data-haptgl]').forEach(b => b.onclick = () => setHap(!Hap.on)); hapSync();
   const go = (sd, dly) => { S.start(); S.setOn(S.isOn()); newGame(sd, dly); };
@@ -103,6 +100,8 @@ function showTitle() {
   $('#bPlay').onclick = () => go(1000 + Math.floor(Math.random() * 90000), false);
   $('#bDaily').onclick = () => go(today(), true);
 }
+// the wordless how-to: search, dust, talk, string, accuse
+const HOWI = `<div class="howi" aria-hidden="true"><span style="--k:0">🔎</span><i></i><span style="--k:1">🖌️</span><i></i><span style="--k:2">🗣️</span><i></i><span style="--k:3">🧵</span><i></i><span style="--k:4">☠️</span></div>`;
 
 /* ---------- game start ---------- */
 function newGame(sd, dly) {
@@ -111,15 +110,15 @@ function newGame(sd, dly) {
   $('#title').hidden = true; $('#result').hidden = true; $('#game').hidden = true; $('#hud').hidden = true;
   const it = $('#intro'); it.hidden = false; it.className = 'screen intro'; it.scrollTop = 0;
   const caseLabel = daily ? 'DAILY ' + String(sd).slice(4, 6) + '/' + String(sd).slice(6) : '#' + sd;
-  it.innerHTML = `<div class="tbanner" style="height:170px">${A.skyline(G.st.id + 'i', G.st.accent, G.st.sky, G.st.id, 400, 170)}</div>
-  <div class="meta">CASE ${caseLabel} · ${esc(G.st.name)}</div><p class="cold" id="cold"></p>
-  <div class="rule">DEADLINE ${E.fmt(23 * 60 + 30 + E.MAXT * 15)}. Every move burns 15 minutes. At dawn the Commissioner takes the case. Name the killer first.</div>
-  <button class="cta" id="bBody" style="visibility:hidden">Examine the body</button><div class="tapskip">TAP TO SKIP</div>`;
+  it.innerHTML = `<div class="tbanner" style="height:220px">${A.skyline(G.st.id + 'i', G.st.accent, G.st.sky, G.st.id, 400, 220)}<div class="smoke" aria-hidden="true"><i></i><i></i><i></i></div></div>
+  <div class="meta">${caseLabel} · ${esc(G.st.name)}</div><p class="cold" id="cold"></p>
+  <div class="rule"><span>☀️ ${E.fmt(23 * 60 + 30 + E.MAXT * 15)}</span><span>⏱ 15 min a move</span></div>
+  <button class="cta" id="bBody" style="visibility:hidden">🩸 Examine the body</button><div class="tapskip">⏩</div>`;
   S.sfx.thunder(false);
-  typeText($('#cold'), G.st.open, 22).then(() => { $('#bBody').style.visibility = 'visible'; $('.tapskip').style.display = 'none'; });
+  typeText($('#cold'), G.st.open, 26).then(() => { $('#bBody').style.visibility = 'visible'; $('.tapskip').style.display = 'none'; });
   $('#bBody').onclick = async () => {
     it.hidden = true; $('#game').hidden = false; $('#hud').hidden = false; setView('scene'); updateHud(); renderAll();
-    await showClue(G.clues.c_scene, 'The body');
+    await showClue(G.clues.c_scene, 'scene');
     renderAll();
   };
 }
@@ -130,7 +129,7 @@ function updateHud(beat) {
   $('#hudClock').textContent = E.clock(G);
   $('#hudBar').style.width = (left / G.max * 100) + '%';
   $('.tbar').classList.toggle('low', left <= 4); $('#hud').classList.toggle('hud-low', left <= 4);
-  $('#hudLeft').textContent = left + ' moves left';
+  $('#hudLeft').textContent = '⏱ ' + left;
   $('#hudCase').textContent = daily ? 'DAILY' : '#' + seed;
   $('#sndBtn').textContent = S.isOn() ? '🔊' : '🔇';
   S.sfx.setTension(Math.max(0, Math.min(1, (10 - left) / 9)));
@@ -139,7 +138,7 @@ function updateHud(beat) {
 }
 $('#sndBtn').onclick = () => { S.start(); S.setOn(!S.isOn()); updateHud(); };
 $('#menuBtn').onclick = async () => {
-  const r = await modal(`<div class="dark"><h3 style="color:var(--fg)">PAUSED</h3><ul class="ul"><li><b>Search</b> rooms. Each move costs 15 min.</li><li>Show evidence to <b>break lies</b>. Wrong guess = 2 moves.</li><li>Cracked liars give <b>testimony</b>. Use it on others.</li><li>Find who has <b>no alibi</b>. Accuse with proof.</li></ul><button class="btn" data-r="x">Back to the case</button><button class="btn alt" data-r="snd" data-now>${S.isOn() ? '🔇 Sound off' : '🔊 Sound on'}</button>${Hap.can ? `<button class="btn alt" data-r="hap">📳 Haptics ${Hap.on ? 'off' : 'on'}</button>` : ''}<button class="btn alt" data-r="re">Restart this case</button><button class="btn alt" data-r="q">Quit to title</button></div>`);
+  const r = await modal(`<div class="dark"><h3 style="color:var(--fg)">PAUSED</h3>${HOWI}<button class="btn" data-r="x">▶ Back to the case</button><button class="btn alt" data-r="snd" data-now>${S.isOn() ? '🔇 Sound off' : '🔊 Sound on'}</button>${Hap.can ? `<button class="btn alt" data-r="hap">📳 Haptics ${Hap.on ? 'off' : 'on'}</button>` : ''}<button class="btn alt" data-r="re">↺ Restart</button><button class="btn alt" data-r="q">⌂ Quit</button></div>`);
   if (r === 're') newGame(seed, daily); else if (r === 'q') showTitle(); else if (r === 'snd') { S.start(); S.setOn(!S.isOn()); updateHud(); } else if (r === 'hap') setHap(!Hap.on);
 };
 
@@ -150,68 +149,235 @@ function setView(v) {
   if (v === 'board') boardNew = 0; updateHud(); renderAll();
 }
 $$('#nav button').forEach(b => b.onclick = () => { S.sfx.tap(); setView(b.dataset.v); });
-function renderAll() { if (!G) return; if (view === 'scene') renderScene(); else if (view === 'suspects') renderSuspects(); else renderBoard(); updateHud(); }
+function renderAll() { if (!G) return; if (view === 'scene') renderScene(); else if (view === 'suspects') renderSuspects(); else renderBoard(); guide(); updateHud(); }
 function chipFor(i) {
-  if (G.conf && G.conf.idx === i && !G.stmts[G.conf.id].broken) return ['warn', '⚠ Confessed'];
-  const s = G.status[i]; return s === 'holds' ? ['ok', '✓ Alibi checks out'] : s === 'collapsed' ? ['bad', '✗ Alibi broken'] : s === 'pending' ? ['pend', '… Needs a witness'] : ['', 'Story unchecked'];
+  if (G.conf && G.conf.idx === i && !G.stmts[G.conf.id].broken) return ['warn', '🎭 Confessed'];
+  const s = G.status[i]; return s === 'holds' ? ['ok', '✓ Clear'] : s === 'collapsed' ? ['bad', '✗ Broken'] : s === 'pending' ? ['pend', '… Witness?'] : ['', '? Unchecked'];
 }
-function tipText() {
+// wordless tutorial: a finger over the next room, a pulsing tab for the next step
+function guideTarget() {
+  if (G.leadExit && !G.searched.exit) return 'exit';
+  if (!Object.keys(G.searched).length && !Object.keys(G.met).length) return lifted.c_scene ? null : 'scene';
+  return null;
+}
+function guide() {
   const searched = Object.keys(G.searched).length, met = Object.keys(G.met).length;
-  if (G.leadExit && !G.searched.exit) return 'Somebody slipped out the ' + G.st.exit.name + '. Go look. It might be the whole case.';
-  if (!searched && !met) return 'Four suspects, four alibis. Someone is lying. Search a room, or hear their stories first.';
-  if (searched && !G.cracks) return 'Found something that contradicts a story? Open Suspects, pick them, and show it. Wrong guesses cost 2 moves.';
-  if (G.cracks && !G.leadExit) return 'Cracked liars talk, and their testimony becomes evidence. Pin it. Press the others with it.';
-  return '';
+  const want = !met && lifted.c_scene ? 'suspects' : searched && !G.cracks && view !== 'board' ? 'board' : '';
+  $$('#nav button').forEach(b => b.classList.toggle('pulse', b.dataset.v === want && view !== want));
 }
+function hintBtn(id) { return `<button class="tool" id="${id}" aria-label="Phone the Lieutenant for a hint"><span>☎️</span><b>Hint</b><small>⏱1 · −75</small></button>`; }
+const MAPSIGN = { club: 'JAZZ', manor: 'BLACKWOOD', train: 'MERIDIAN', lab: 'HALCYON', studio: 'STUDIO 9' };
+const SLOTS = [[3, 5], [35.5, 5], [68, 5], [3, 52], [35.5, 52], [68, 52]];
 function renderScene() {
-  const st = G.st, locs = E.locations(G), first = !Object.keys(G.searched).length;
-  const tip = tipText();
-  $('#v-scene').innerHTML = `<div class="sbanner">${A.skyline(st.id + 's', st.accent, st.sky, st.id, 400, 118)}<div class="nm">${esc(st.name)}<small>${esc(st.victim.full)} · ${esc(st.victim.title)}</small></div></div>
-  ${tip ? `<div class="tip">${esc(tip)}</div>` : ''}<h3 class="sec">Where to?</h3><div class="locs">${locs.map((l, i) => {
-    const owner = G.people.find(p => p.place && p.place.id === l.id && G.met[p.idx]);
-    const em = l.scene ? 'THE BODY · FREE' : l.searched ? 'SEARCHED ✓' : l.lead ? 'NEW LEAD · 1 MOVE' : (owner ? esc(owner.short.toUpperCase()) + '\'S ALIBI · 1 MOVE' : 'SEARCH · 1 MOVE');
-    return `<button class="loc ${l.searched && !l.scene ? 'done' : ''} ${l.lead && !l.searched ? 'lead' : ''} ${first && l.scene ? 'start' : ''}" data-id="${l.id}"><span class="ic">${l.icon}</span><span><b>${esc(l.name)}</b><em>${em}</em></span></button>`; }).join('')}</div>
-  ${seanceBtn('seBtn')}${safeBtn('sfBtn')}<button class="hintbtn" id="hintBtn">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  const st = G.st, locs = E.locations(G), tgt = guideTarget();
+  const slotOf = { scene: 1, exit: 5 }; st.places.forEach((p, i) => { slotOf[p.id] = [0, 2, 3, 4][i]; });
+  const rooms = locs.map(l => {
+    const [x, y] = SLOTS[slotOf[l.id]], owner = G.people.find(p => p.place && p.place.id === l.id && G.met[p.idx]);
+    const mark = l.scene ? '🩸' : l.searched ? '✓' : l.lead ? '❗' : '';
+    return `<button class="loc room ${l.scene ? 'body' : ''} ${l.searched && !l.scene ? 'done' : ''} ${l.lead && !l.searched ? 'lead' : ''} ${tgt === l.id ? 'start' : ''}" data-id="${l.id}" style="left:${x}%;top:${y}%" aria-label="${esc(l.name)}">
+      <span class="win">${owner ? `<span class="who">${A.portrait(owner.art, { accent: st.accent, mood: G.nerve[owner.idx] >= 2 ? 'nervous' : 'neutral', nerve: G.nerve[owner.idx], label: owner.name })}</span>` : ''}<span class="ic">${l.icon}</span>${!l.searched && !l.scene ? '<i class="glint"></i>' : ''}<i class="blind"></i></span>
+      <b>${esc(l.name)}</b>${mark ? `<em>${mark}</em>` : ''}${tgt === l.id ? '<span class="finger" aria-hidden="true">👆</span>' : ''}</button>`;
+  }).join('');
+  const shut = G.leadExit ? '' : `<div class="room shut" style="left:${SLOTS[5][0]}%;top:${SLOTS[5][1]}%" aria-hidden="true"><span class="win"><span class="ic">🔒</span></span><b>${esc(st.exit.name)}</b></div>`;
+  $('#v-scene').innerHTML = `<div class="map m-${st.id}"><div class="mapsky">${A.skyline(st.id + 's', st.accent, st.sky, st.id, 400, 150)}</div><div class="mapsign">${MAPSIGN[st.id] || ''}</div><div class="streetlamp" aria-hidden="true"></div>
+    <div class="facade">${rooms}${shut}</div><div class="rainglass" aria-hidden="true"></div><div class="smoke" aria-hidden="true"><i></i><i></i><i></i></div></div>
+    <div class="tools">${seanceBtn('seBtn')}${safeBtn('sfBtn')}${hintBtn('hintBtn')}</div>`;
   $$('#v-scene .loc').forEach(b => b.onclick = () => doSearch(b.dataset.id));
   $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance; $('#sfBtn').onclick = doSafe;
 }
 function renderSuspects() {
-  $('#v-suspects').innerHTML = `<div class="cards">${G.people.map(p => { const [c, tx] = chipFor(p.idx); return `<button class="sc" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: G.nerve[p.idx] >= 2 ? 'nervous' : 'neutral', nerve: G.nerve[p.idx], label: p.name })}${G.met[p.idx] ? '' : '<span class="new">NEW</span>'}</div><div class="inf"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span><span class="chip ${c}">${tx}</span></div></button>`; }).join('')}</div>`;
+  $('#v-suspects').innerHTML = `<div class="cards">${G.people.map(p => { const [c, tx] = chipFor(p.idx), n = G.nerve[p.idx]; return `<button class="sc ${G.met[p.idx] ? '' : 'unmet'}" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: G.status[p.idx] === 'collapsed' ? 'caught' : n >= 2 ? 'nervous' : 'neutral', nerve: n, label: p.name })}${G.met[p.idx] ? '' : '<span class="new">👋</span>'}</div><div class="inf"><b>${esc(p.name)}</b><span class="chip ${c}">${tx}</span></div></button>`; }).join('')}</div>`;
   $$('#v-suspects .sc').forEach(b => b.onclick = () => { S.sfx.tap(); openInterview(+b.dataset.i); });
 }
+const KIND_IC = { confession: '🎭', call: '☎️', alone: '🚶', claim: '🏠' };
 function renderBoard() {
   const clues = E.clueList(G);
-  let h = safeNote() + (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>Somebody in this room smells of it.</small></div></div>` : '') + `<div class="cork"><div class="pinhint">${armed ? 'Now tap the statement it contradicts ↓' : 'Tap a clue, then tap the lie it breaks.'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pinhint" style="color:#f0e2c0;font-size:13px;margin-top:6px">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
+  let h = safeNote() + (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>👃 ?</small></div></div>` : '')
+    + `<div class="cork" id="cork"><div class="pinhint">${armed ? '👇 Now the lie' : '🧵 Drag a clue onto a lie'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pintx">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
   G.people.forEach(p => {
     const [c, tx] = chipFor(p.idx), sts = E.statementsFor(G, p.idx);
-    h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b><span class="role">${esc(p.rolelabel)}</span></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
-    if (!G.met[p.idx]) h += `<div class="dos">Not interviewed yet. Tap to meet.</div>`;
-    sts.forEach(s => { h += `<button class="note ${s.kind === 'confession' ? 'conf' : s.kind} ${s.broken ? 'broken' : ''} ${armed && !s.broken ? 'armed-t' : ''}" data-s="${s.id}"><span class="k">${({ confession: 'Confession', call: 'Phone alibi', alone: 'Admission' })[s.kind] || 'Alibi claim'}</span><span class="tx">“${esc(s.text)}”</span>${s.broken ? `<span class="lie">LIE</span><span class="by">🧵 Broken by: ${esc(G.clues[s.brokenBy].title)}</span>` : ''}</button>`; });
-    if (G.polyStrip && G.polyStrip[p.idx]) h += `<div class="pstrip"><span>📈 LIE BOX · ${esc(POLY_TAG[G.poly[p.idx].murder][0])}</span><img src="${G.polyStrip[p.idx]}" alt="Polygraph strip"></div>`;
-    if (G.notes[p.idx].length) h += `<div class="dos"><ul>${G.notes[p.idx].map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`;
+    h += `<div class="folder"><button class="fh" data-i="${p.idx}"><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: G.status[p.idx] === 'collapsed' ? 'caught' : 'neutral', nerve: G.nerve[p.idx], label: p.name })}</span><span style="flex:1"><b>${esc(p.name)}</b></span><span class="chip ${c}">${tx}</span></button><div class="notes">`;
+    if (!G.met[p.idx]) h += `<div class="dos meet">👋 ?</div>`;
+    sts.forEach(s => { h += `<button class="note ${s.kind === 'confession' ? 'conf' : s.kind} ${s.broken ? 'broken' : ''} ${armed && !s.broken ? 'armed-t' : ''}" data-s="${s.id}"><span class="k">${KIND_IC[s.kind] || '🏠'}</span><span class="tx">“${esc(s.text)}”</span>${s.broken ? `<span class="lie">LIE</span><span class="by">🧵 ${G.clues[s.brokenBy].icon} ${esc(G.clues[s.brokenBy].title)}</span>` : ''}</button>`; });
+    if (G.polyStrip && G.polyStrip[p.idx]) h += `<div class="pstrip"><span>📈 ${esc(POLY_TAG[G.poly[p.idx].murder][0])}</span><img src="${G.polyStrip[p.idx]}" alt="Polygraph strip"></div>`;
+    if (G.notes[p.idx].length) h += `<div class="dos chips">${G.notes[p.idx].map(n => `<span>${esc(n.text)}</span>`).join('')}</div>`;
     h += `</div></div>`;
   });
-  h += seanceBtn('seBtn2') + safeBtn('sfBtn2') + `<button class="hintbtn" id="hintBtn2">🕯️ Phone the Lieutenant for a hint · 1 move · −75 pts</button>`;
+  h += `<div class="tools">${seanceBtn('seBtn2')}${safeBtn('sfBtn2')}${hintBtn('hintBtn2')}</div>`;
   $('#v-board').innerHTML = h;
-  $$('#v-board .pin').forEach(b => b.onclick = () => { if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
+  $$('#v-board .pin').forEach(b => b.onclick = () => { if (b._dragged) return; if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
   $$('#v-board .fh').forEach(b => b.onclick = () => openInterview(+b.dataset.i));
   $$('#v-board .note').forEach(b => b.onclick = () => {
     const s = G.stmts[b.dataset.s];
-    if (!armed) return toast('Tap a clue above first.');
-    if (s.broken) return toast('That lie is already broken.');
-    const c = armed; armed = null; S.sfx.link(); hap('link'); openInterview(s.who, c);
+    if (!armed) { b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return toast('🧵 ↑'); }
+    if (s.broken) return toast('LIE ✓');
+    const c = armed; armed = null; S.sfx.twang(); hap('link'); openInterview(s.who, c);
   });
   $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance; $('#sfBtn2').onclick = doSafe;
+  stringDrag();
+}
+/* ---------- red string: press a pinned clue and drag the string onto the statement it breaks ---------- */
+function stringDrag() {
+  $$('#v-board .pin').forEach(pin => pin.addEventListener('pointerdown', e => {
+    if (e.button || busy) return;
+    const id = pin.dataset.c, r0 = pin.getBoundingClientRect(), ax = r0.left + r0.width / 2, ay = r0.top + 4;
+    let drag = false, hot = null, svg = null, path = null, knot = null;
+    const mv = ev => {
+      const x = ev.clientX, y = ev.clientY;
+      if (!drag && Math.hypot(x - e.clientX, y - e.clientY) > 10) {
+        drag = true; pin.classList.add('armed', 'held'); S.sfx.link(); hap('link');
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'string'); svg.setAttribute('aria-hidden', 'true');
+        svg.innerHTML = '<path class="sh"/><path class="st"/><circle r="7"/>'; document.body.appendChild(svg); path = svg.querySelectorAll('path'); knot = svg.querySelector('circle');
+        $$('#v-board .note').forEach(n => { if (!G.stmts[n.dataset.s].broken) n.classList.add('armed-t'); });
+      }
+      if (!drag) return; if (ev.cancelable) ev.preventDefault();
+      const sag = Math.min(70, Math.hypot(x - ax, y - ay) * 0.18), d = `M${ax} ${ay} Q${(ax + x) / 2} ${Math.max(ay, y) + sag} ${x} ${y}`;
+      path[0].setAttribute('d', d); path[1].setAttribute('d', d); knot.setAttribute('cx', x); knot.setAttribute('cy', y);
+      const el = document.elementFromPoint(x, y), n = el && el.closest ? el.closest('#v-board .note') : null, ok = n && !G.stmts[n.dataset.s].broken ? n : null;
+      if (ok !== hot) { if (hot) hot.classList.remove('hot'); hot = ok; if (hot) { hot.classList.add('hot'); hap('tap'); S.sfx.tap(); } }
+      const v = $('#v-board'), vr = v.getBoundingClientRect(); if (y > vr.bottom - 56) v.scrollTop += 14; else if (y < vr.top + 40) v.scrollTop -= 14;
+    };
+    const up = () => {
+      removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      if (!drag) return; pin._dragged = true; setTimeout(() => { pin._dragged = false; }, 60);
+      $$('#v-board .note').forEach(n => n.classList.remove('armed-t', 'hot')); pin.classList.remove('held');
+      if (hot) { const s = G.stmts[hot.dataset.s]; svg.classList.add('pinned'); S.sfx.twang(); hap('crack'); setTimeout(() => svg.remove(), 500); armed = null; openInterview(s.who, id); }
+      else { svg.classList.add('snap'); setTimeout(() => svg.remove(), 260); pin.classList.remove('armed'); S.sfx.tap(); }
+    };
+    addEventListener('pointermove', mv, { passive: false }); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  }));
 }
 
-/* ---------- clues, search, hints ---------- */
+/* ---------- clues: every piece of evidence is a physical object you work with your hands ---------- */
+const TOOL = { dust: ['🖌️', '💨', 'PRINT LIFTED'], fog: ['☝️', '💨', 'WIPED'], lamp: ['💡', '⏩', 'HELD TO LIGHT'], uv: ['🔦', '⏩', 'STAIN FOUND'], tear: ['✂️', '⏩', 'TORN OPEN'], match: ['👆', '⏩', 'STRUCK'] };
+const TESTI = { t_P1: 'P1', t_S: 'S', t_K: 'K', t_KC: 'K', t_L: 'L' };
+function clueTag(c, tag) {
+  if (c.kind === 'testimony') return '🗣️';
+  if (tag === 'scene') return G.st.scene.icon + ' ' + esc(G.st.scene.name);
+  if (tag === 'again') return '✓ ' + esc(c.title);
+  const loc = c.loc === 'exit' ? G.st.exit : G.st.places.find(p => p.id === c.loc);
+  return loc ? loc.icon + ' ' + esc(loc.name) : '🗂️';
+}
 async function showClue(c, tag) {
   S.sfx.page(); S.sfx.chime();
-  const dust = !FAST && c.kind !== 'testimony' && !lifted[c.id] && !RM;
-  const pr = modal(`<div class="paper"><div class="tag">${esc(tag || (c.kind === 'testimony' ? 'New testimony' : 'Evidence'))}</div><h3>${c.icon} ${esc(c.title)}</h3>${dust ? `<div class="dustw" id="dustW"><p id="clueTx"></p><canvas class="dustc" id="dustC" aria-hidden="true"></canvas><canvas class="motec" id="moteC" aria-hidden="true"></canvas><div class="dusthint" id="dustHint"><b>🖌️</b>Brush the powder to lift the print</div><button class="blow" id="dustBlow" aria-label="Blow the powder away">💨</button></div>` : '<p id="clueTx"></p>'}<button class="btn" data-r="ok">${c.kind === 'testimony' ? 'Pin to the board' : 'Pin it to the board'}</button></div>`);
-  if (dust) { $('#clueTx').textContent = c.text; dustFor(c); } else typeText($('#clueTx'), c.text, 11);
+  const tool = !FAST && !RM && c.kind !== 'testimony' && !lifted[c.id] ? (c.tool || 'dust') : null;
+  let body;
+  if (c.kind === 'testimony') { const who = G[TESTI[c.id]] || null;
+    body = `<div class="tsay">${who ? `<span class="av">${A.portrait(who.art, { accent: G.st.accent, mood: 'caught', nerve: 3, label: who.name })}</span>` : ''}<p class="bub" id="clueTx"></p></div>`; }
+  else if (tool === 'dust') body = `<div class="dustw" id="dustW"><p id="clueTx"></p><canvas class="dustc" id="dustC" aria-hidden="true"></canvas><canvas class="motec" id="moteC" aria-hidden="true"></canvas><div class="dusthint g-dust" id="dustHint"><b>🖌️</b></div><button class="blow" id="dustBlow" aria-label="Blow the powder away">💨</button></div>`;
+  else if (tool) body = `<div class="toolw t-${tool}" id="toolW">${toolArt(c, tool)}<canvas class="toolc" id="toolC" aria-hidden="true"></canvas><div class="dusthint g-${tool}" id="dustHint"><b>${TOOL[tool][0]}</b></div><button class="blow" id="toolSkip" aria-label="Skip">${TOOL[tool][1]}</button></div><p id="clueTx" class="${tool === 'fog' || tool === 'uv' ? 'after' : 'sr'}"></p>`;
+  else body = `<p id="clueTx"></p>`;
+  const pr = modal(`<div class="paper ${c.kind === 'testimony' ? 'testi' : ''}"><div class="tag">${clueTag(c, tag)}</div>${c.kind === 'testimony' ? '' : `<div class="objart" id="objArt" aria-hidden="true"><span>${c.icon}</span><i>№ ${String(Object.keys(G.found).indexOf(c.id) + 1).padStart(2, '0')}</i></div>`}<h3>${c.kind === 'testimony' ? c.icon + ' ' : ''}${esc(c.title)}</h3>${body}<button class="btn" data-r="ok">📌 Pin it</button></div>`);
+  if (c.kind !== 'testimony') turnable($('#objArt'));
+  if (tool === 'dust') { $('#clueTx').textContent = c.text; dustFor(c); }
+  else if (tool) { $('#clueTx').textContent = c.text; TOOLS[tool](c); }
+  else typeText($('#clueTx'), c.text, 11);
   await pr; if (dustStop) dustStop();
 }
+// pick it up and turn it over: drag the evidence tag to rotate it in 3D, it springs back
+function turnable(el) {
+  if (!el) return; let st = null, rx = 0, ry = 0, raf = 0;
+  const set = () => { el.style.transform = `perspective(500px) rotateX(${rx}deg) rotateY(${ry}deg)`; el.style.setProperty('--gl', (50 + ry * 0.8) + '%'); };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); st = [e.clientX, e.clientY, rx, ry]; cancelAnimationFrame(raf); try { el.setPointerCapture(e.pointerId); } catch (_) {} S.sfx.page(); hap('tap'); el.classList.add('held'); });
+  el.addEventListener('pointermove', e => { if (!st) return; ry = Math.max(-55, Math.min(55, st[3] + (e.clientX - st[0]) * 0.6)); rx = Math.max(-40, Math.min(40, st[2] - (e.clientY - st[1]) * 0.5)); set(); if (Math.abs(ry) > 50) hap('dust'); });
+  const up = () => { if (!st) return; st = null; el.classList.remove('held'); const spring = () => { rx *= 0.82; ry *= 0.82; set(); if (Math.abs(rx) + Math.abs(ry) > 0.3) raf = requestAnimationFrame(spring); else { rx = ry = 0; el.style.transform = ''; } }; spring(); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+function toolArt(c, tool) {
+  const P = G.st.pal || {};
+  if (tool === 'fog') return `<svg class="fogscene" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="fgL" cx=".78" cy=".28" r=".5"><stop offset="0" stop-color="#e0a040" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><linearGradient id="fgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101820"/><stop offset="1" stop-color="#05070a"/></linearGradient></defs>
+    <rect width="300" height="150" fill="url(#fgS)"/><rect width="300" height="150" fill="url(#fgL)"/><rect x="0" y="112" width="300" height="38" fill="#0b0d10"/><path d="M0 112H300" stroke="#e0a04044"/>
+    <rect x="226" y="18" width="4" height="96" fill="#07080a"/><path d="M216 20h24l-6 10h-12z" fill="#07080a"/><ellipse cx="228" cy="34" rx="5" ry="3" fill="#ffd27a"/>
+    <rect x="18" y="40" width="46" height="74" fill="#07080a"/><rect x="24" y="46" width="34" height="62" fill="#e0a04022"/>
+    <g class="runner" fill="#020203"><circle cx="128" cy="66" r="7"/><path d="M118 61h20l-3-6h-14z"/><path d="M121 74h14l6 26-7 1-4-14-4 14-11-2 4-12-6 10-5-3 8-14z"/></g>
+    <g class="item"><circle cx="176" cy="116" r="10" fill="#e0a04033"/><text x="176" y="121" text-anchor="middle" font-size="14">${c.icon}</text></g>
+    <path d="M150 0V150M0 75H300" stroke="#1a1410" stroke-width="7"/><rect x="2" y="2" width="296" height="146" fill="none" stroke="#1a1410" stroke-width="8"/></svg>`;
+  if (tool === 'lamp') { const wm = c.id === 'c_stage' ? '🕰️' : (D.MICON && G.subj ? D.MICON[G.subj.motive] : '✉️') || '✉️';
+    return `<div class="letter" id="letter"><div class="wm">${wm}</div><p class="ltx">${esc(c.text)}</p></div>`; }
+  if (tool === 'uv') { const r = E.mulberry ? E.mulberry(seed + c.id.length * 97) : Math.random, sx = 18 + r() * 64, sy = 22 + r() * 50;
+    return `<div class="carpet" id="carpet"><svg class="stain" style="left:${sx}%;top:${sy}%" viewBox="0 0 60 40" aria-hidden="true"><path d="M6 22c4-12 18-16 28-12 8 3 20-2 22 6 2 9-12 8-18 13-7 6-20 6-26 0-3-3-8-2-6-7z"/><path d="M40 30l16 8M44 27l14 3" stroke-width="2.4"/></svg><i class="torch"></i></div>`; }
+  if (tool === 'tear') return `<div class="ticket" id="ticket"><div class="tk-in"><b>${c.icon}</b><p>${esc(c.text)}</p></div><div class="stub" id="stub"><span>${esc(G.st.name.toUpperCase())}</span><b>№ ${(seed % 9000) + 1000}</b><i class="perf"></i></div></div>`;
+  if (tool === 'match') return `<div class="mbook" id="mbook"><div class="minside"><i class="sticks"></i><p>${esc(c.text)}</p><span class="flame" id="flame"></span></div><div class="mcover" id="mcover"><span>${esc(G.st.name)}</span><i class="strip"></i></div></div>`;
+  return '';
+}
+function toolKit(c, tool, opts) {
+  const w = $('#toolW'), cv = $('#toolC'), x = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), W = Math.max(1, w.offsetWidth), H = Math.max(1, w.offsetHeight);
+  cv.width = W * dpr; cv.height = H * dpr; x.scale(dpr, dpr);
+  let done = false, hintGone = false; const k = { w, cv, x, W, H, stop: [] };
+  k.gone = () => { if (!hintGone) { hintGone = true; $('#dustHint').classList.add('gone'); } };
+  k.fin = (skipped) => { if (done) return; done = true; lifted[c.id] = 1; S.sfx.puff(); hap('lift'); w.classList.add('lifted'); if (skipped) w.classList.add('blown'); k.gone();
+    const st = document.createElement('div'); st.className = 'printstamp'; st.innerHTML = `<span>${TOOL[tool][2]}</span>`; w.appendChild(st); if (opts && opts.onFin) opts.onFin(); };
+  k.done = () => done;
+  k.pos = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * H / b.height]; };
+  k.coverage = () => { const d = x.getImageData(0, 0, cv.width, cv.height).data; let s = 0, n = 0; for (let i = 3; i < d.length; i += 4 * 37) { n++; if (d[i] < 60) s++; } return s / n; };
+  $('#toolSkip').onclick = () => k.fin(true);
+  dustStop = () => { k.stop.forEach(f => f()); dustStop = null; if (!done) lifted[c.id] = 1; };
+  return k;
+}
+const TOOLS = {
+  // wipe the condensation off the window: a figure at the door, the thing they dropped
+  fog(c) {
+    const k = toolKit(c, 'fog'), { x, W, H, cv } = k; let last = null, moved = 0, drips = [], raf = 0, regrow = 0;
+    const fogFill = a => { const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, `rgba(196,206,210,${a})`); g.addColorStop(1, `rgba(150,162,168,${a})`); x.fillStyle = g; x.fillRect(0, 0, W, H); };
+    fogFill(0.93); for (let i = 0; i < 70; i++) { const px = Math.random() * W, py = Math.random() * H, r = 1 + Math.random() * 3; x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.fillStyle = 'rgba(60,70,80,.25)'; x.beginPath(); x.arc(px + r * 0.4, py + r * 0.5, r * 0.7, 0, 7); x.fill(); }
+    const wipe = (px, py, r) => { const rg = x.createRadialGradient(px, py, 0, px, py, r); rg.addColorStop(0, 'rgba(0,0,0,.95)'); rg.addColorStop(0.7, 'rgba(0,0,0,.5)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = rg; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; };
+    const tick = () => { drips = drips.filter(d => (d.l -= 0.016) > 0); drips.forEach(d => { d.y += d.v; d.v *= 0.985; wipe(d.x, d.y, 2.2); }); if (!k.done() && !last && ++regrow % 12 === 0 && regrow < 900) { x.globalAlpha = 0.012; fogFill(1); x.globalAlpha = 1; } raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick); k.stop.push(() => cancelAnimationFrame(raf));
+    cv.addEventListener('pointerdown', e => { if (k.done()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} last = k.pos(e); wipe(last[0], last[1], 22); S.sfx.squeak(1); k.gone(); });
+    cv.addEventListener('pointermove', e => { if (k.done() || !last) return; e.preventDefault(); const [px, py] = k.pos(e), dx = px - last[0], dy = py - last[1], d = Math.hypot(dx, dy); if (d < 1.5) return;
+      for (let s = 0; s <= d; s += 6) wipe(last[0] + dx * s / d, last[1] + dy * s / d, 24); last = [px, py]; moved += d; S.sfx.squeak(d); hap('dust');
+      if (Math.random() < 0.12) drips.push({ x: px + (Math.random() - 0.5) * 20, y: py + 10, v: 1.4 + Math.random(), l: 1 });
+      if (moved > 140) { moved = 0; if (k.coverage() > 0.45) k.fin(); } });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => cv.addEventListener(t, () => { last = null; if (!k.done() && k.coverage() > 0.45) k.fin(); }));
+  },
+  // hold the letter up to the lamp: the longer you hold, the more the watermark and the faded ink show through
+  lamp(c) {
+    const k = toolKit(c, 'lamp'), w = k.w, cv = k.cv; let heat = 0, hold = false, raf = 0, last = performance.now(), hum = 0;
+    cv.style.pointerEvents = 'auto'; cv.style.opacity = 0;
+    const step = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!k.done()) { heat = Math.max(0, Math.min(1, heat + (hold ? dt / 1.6 : -dt / 3))); if (hold && (hum += dt) > 0.22) { hum = 0; S.sfx.buzz(heat); hap('pulse'); } if (heat >= 1) k.fin(); }
+      w.style.setProperty('--heat', k.done() ? 1 : heat.toFixed(3)); raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step); k.stop.push(() => cancelAnimationFrame(raf));
+    const at = e => { const [px, py] = k.pos(e); w.style.setProperty('--lx', px + 'px'); w.style.setProperty('--ly', py + 'px'); };
+    cv.addEventListener('pointerdown', e => { if (k.done()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} hold = true; at(e); w.classList.add('lit'); k.gone(); S.sfx.page(); });
+    cv.addEventListener('pointermove', e => { if (hold) at(e); });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { hold = false; w.classList.remove('lit'); }));
+  },
+  // sweep the UV torch over the carpet; dwell on the glow to find the stain
+  uv(c) {
+    const k = toolKit(c, 'uv'), { x, W, H, cv, w } = k; let pt = null, found = 0, raf = 0, last = performance.now(), near = false, bz = 0;
+    const stain = w.querySelector('.stain'), sb = () => { const a = stain.getBoundingClientRect(), b = cv.getBoundingClientRect(); return [(a.left + a.width / 2 - b.left) * W / b.width, (a.top + a.height / 2 - b.top) * H / b.height]; };
+    const draw = () => { x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, W, H); x.fillStyle = 'rgba(5,6,9,.96)'; x.fillRect(0, 0, W, H);
+      if (pt && !k.done()) { const rg = x.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], 52); rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(0.65, 'rgba(0,0,0,.85)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = rg; x.beginPath(); x.arc(pt[0], pt[1], 52, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; } };
+    const step = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!k.done() && pt) { const [sx, sy] = sb(), d = Math.hypot(pt[0] - sx, pt[1] - sy); const n = d < 42; if (n && !near) { S.sfx.ting(3); hap('tap'); } near = n; if (n) { found += dt; hap('pulse'); if (found > 0.55) k.fin(); } if ((bz += dt) > 0.3) { bz = 0; S.sfx.buzz(0.2); } }
+      draw(); if (!k.done()) raf = requestAnimationFrame(step); };
+    draw(); raf = requestAnimationFrame(step); k.stop.push(() => cancelAnimationFrame(raf));
+    cv.addEventListener('pointerdown', e => { if (k.done()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} pt = k.pos(e); w.classList.add('on'); k.gone(); S.sfx.buzz(0.5); });
+    cv.addEventListener('pointermove', e => { if (pt) { e.preventDefault(); pt = k.pos(e); w.style.setProperty('--tx', pt[0] + 'px'); w.style.setProperty('--ty', pt[1] + 'px'); } });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { pt = null; w.classList.remove('on'); }));
+  },
+  // tear the stub along the perforation, left to right
+  tear(c) {
+    const k = toolKit(c, 'tear'), { cv, w, W } = k, stub = $('#stub'); let p = 0, lx = null;
+    cv.addEventListener('pointerdown', e => { if (k.done()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} lx = k.pos(e)[0]; k.gone(); S.sfx.rip(2); });
+    cv.addEventListener('pointermove', e => { if (k.done() || lx === null) return; e.preventDefault(); const px = k.pos(e)[0], dx = px - lx; lx = px; if (dx <= 0) return;
+      p = Math.min(1, p + dx / (W * 0.85)); stub.style.setProperty('--p', p.toFixed(3)); S.sfx.rip(dx); hap('dust');
+      if (p >= 1) { stub.classList.add('off'); S.sfx.page(); setTimeout(() => k.fin(), 260); } });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { lx = null; if (!k.done() && p < 1) { p = Math.max(0, p - 0.04); stub.style.setProperty('--p', p.toFixed(3)); } }));
+  },
+  // flip the matchbook open with an upward swipe; the match flares and lights what's written inside
+  match(c) {
+    const k = toolKit(c, 'match'), { cv, H } = k, cover = $('#mcover'); let y0 = null, ang = 0, raf = 0;
+    const set = () => { cover.style.transform = `rotateX(${ang}deg)`; };
+    cv.addEventListener('pointerdown', e => { if (k.done()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} y0 = k.pos(e)[1]; cancelAnimationFrame(raf); k.gone(); S.sfx.page(); });
+    cv.addEventListener('pointermove', e => { if (k.done() || y0 === null) return; e.preventDefault(); const dy = y0 - k.pos(e)[1]; const a = Math.max(0, Math.min(170, dy / H * 260)); if (Math.floor(a / 30) !== Math.floor(ang / 30)) hap('dust'); ang = a; set(); });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { if (y0 === null || k.done()) return; y0 = null;
+      if (ang > 95) { ang = 170; set(); cover.classList.add('open'); setTimeout(() => { S.sfx.strike(); hap('crack'); $('#mbook').classList.add('lit'); k.fin(); }, 220); }
+      else { const back = () => { ang *= 0.8; set(); if (ang > 0.5) raf = requestAnimationFrame(back); else { ang = 0; set(); } }; back(); } }));
+  },
+};
+
 /* ---------- fingerprint dusting: every new piece of evidence arrives under graphite powder; brush it off with a finger ---------- */
 const RM = matchMedia('(prefers-reduced-motion:reduce)').matches; let lifted = {}, dustStop = null;
 function dustFor(c) {
@@ -253,19 +419,19 @@ function dustFor(c) {
 }
 async function doSearch(id) {
   if (busy || G.over) return;
-  if (id === 'scene') return showClue(G.clues.c_scene, 'The body');
-  const loc = E.locations(G).find(l => l.id === id); if (loc.searched) { const found = Object.values(G.clues).filter(c => G.found[c.id] && c.loc === id); if (found.length) await showClue(found[0], 'Already searched'); return; }
+  if (id === 'scene') return showClue(G.clues.c_scene, 'scene');
+  const loc = E.locations(G).find(l => l.id === id); if (loc.searched) { const found = Object.values(G.clues).filter(c => G.found[c.id] && c.loc === id); if (found.length) await showClue(found[0], 'again'); return; }
   busy = true; S.sfx.tap();
   const r = E.search(G, id); if (!r.ok) { busy = false; return; }
   updateHud(true); boardNew += r.clues.length;
-  for (const c of r.clues) await showClue(c, 'Found in the ' + r.loc.name);
+  for (const c of r.clues) await showClue(c, 'found');
   await afterAction(r.events); busy = false;
 }
 async function doHint() {
   if (busy || G.over) return; busy = true;
   const r = E.hint(G); if (!r.ok) { busy = false; return; }
   updateHud(true); S.sfx.page();
-  await modal(`<div class="paper"><div class="tag">Lieutenant Mae, on the line</div><h3>☎️ “Listen, kid…”</h3><p id="hintTx"></p><button class="btn" data-r="ok">Got it</button></div>`, () => typeText($('#hintTx'), r.text, 14));
+  await modal(`<div class="paper"><div class="tag">☎️ Lt. Mae</div><h3>“Listen, kid…”</h3><p id="hintTx"></p><button class="btn" data-r="ok">Got it</button></div>`, () => typeText($('#hintTx'), r.text, 14));
   await afterAction(r.events); busy = false;
 }
 async function afterAction(events) {
@@ -277,14 +443,14 @@ async function showEvent(e) {
   if (e.type === 'body') {
     S.sfx.sting(); S.sfx.thunder(true); hap('heavy'); document.body.classList.add('redflash'); setTimeout(() => document.body.classList.remove('redflash'), 700);
     boardNew++;
-    await modal(`<div class="dark red"><h3>A SECOND BODY</h3><p id="evTx"></p><ul class="ul"><li>The Commissioner's men trample the scene: <b>−1 move</b>.</li><li>New lead: the <b>${esc(G.st.exit.name)}</b>.</li></ul><button class="btn" data-r="ok">Go see it</button></div>`, () => typeText($('#evTx'), e.text, 16));
+    await modal(`<div class="dark red"><div class="crystal">💀</div><h3>A SECOND BODY</h3><p id="evTx"></p><div class="chips c"><span>⏱ −1</span><span>🚪 ${esc(G.st.exit.name)}</span></div><button class="btn" data-r="ok">Go see</button></div>`, () => typeText($('#evTx'), e.text, 16));
   } else if (e.type === 'confession') {
     const p = G.people[e.idx]; S.sfx.sting(); hap('heavy'); boardNew++;
     addLog(e.idx, 's', e.text, 'nervous');
-    await modal(`<div class="dark red"><h3>CONFESSION</h3><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: 'nervous', nerve: 3, label: p.name })}</div><b style="font:700 18px var(--serif)">${esc(p.name)}</b><p id="evTx" style="margin-top:10px"></p><ul class="ul"><li>Too easy. Too fast. Check it against the scene.</li></ul><button class="btn" data-r="ok">I'm not buying it</button></div>`, () => typeText($('#evTx'), '“' + e.text + '”', 16));
+    await modal(`<div class="dark red"><h3>🎭 CONFESSION</h3><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: 'nervous', nerve: 3, label: p.name })}</div><b style="font:700 18px var(--serif)">${esc(p.name)}</b><p id="evTx" style="margin-top:10px"></p><div class="chips c"><span>🩸 ?</span></div><button class="btn" data-r="ok">Not buying it</button></div>`, () => typeText($('#evTx'), '“' + e.text + '”', 16));
   } else if (e.type === 'dawn') {
     S.sfx.sting(); S.sfx.thunder(true);
-    await modal(`<div class="dark red"><h3>DAWN</h3><p id="evTx"></p><button class="btn" data-r="ok">Name the killer</button></div>`, () => typeText($('#evTx'), 'Headlights in the rain. The Commissioner\'s car. Time\'s up. Whoever you point at is going down for this.', 16));
+    await modal(`<div class="dark red"><div class="crystal">☀️</div><h3>DAWN</h3><p id="evTx"></p><button class="btn" data-r="ok">Name the killer</button></div>`, () => typeText($('#evTx'), 'Headlights. The Commissioner. Time\'s up.', 16));
     await openAccuse(true);
   }
 }
@@ -296,19 +462,26 @@ function renderILog() {
   (logs[cur] || []).forEach(m => el.appendChild(msgEl(m)));
   scrollLog();
 }
-function msgEl(m, empty) { const d = document.createElement('div'); d.className = 'msg ' + m.k + (m.mood === 'caught' ? ' caught' : ''); if (!empty) d.textContent = m.text; return d; }
-function setPort(i, mood) { const p = G.people[i]; $('#iPort').innerHTML = A.portrait(p.art, { accent: G.st.accent, mood: mood || 'neutral', nerve: G.nerve[i], label: p.name }); }
+// stage directions are acted out on the portrait, not written: a glance, a bead of sweat, a fidget
+const TELL_IC = { glance: '👀', sweat: '💧', fidget: '✋', rain: '🌧️', shake: '✋', swallow: '💧' };
+function tellOf(t) { t = String(t || ''); if (/^(sweat|shake|glance|swallow)$/.test(t)) return t; if (/sweat|swallow|pale|hot|shak/i.test(t)) return 'sweat'; if (/glanc|eyes|door|window|stare|look|past you|blink/i.test(t)) return 'glance'; if (/rain|silence|clock|quiet/i.test(t)) return 'rain'; return 'fidget'; }
+function msgEl(m, empty) { const d = document.createElement('div'); d.className = 'msg ' + m.k + (m.mood === 'caught' ? ' caught' : '');
+  if (m.k === 'b') { const tl = tellOf(m.text); d.classList.add('gest'); d.textContent = TELL_IC[tl] || '…'; d.setAttribute('aria-label', m.text); return d; }
+  if (!empty) d.textContent = m.text; return d; }
+function tell(i, t) { const tl = tellOf(t); if (tl === 'rain') { S.sfx.thunder(false); return; } const p = $('#iPort'); if (tl === 'sweat') setPort(i, 'nervous', 3); p.classList.remove('tell-glance', 'tell-sweat', 'tell-fidget', 'tell-shake', 'tell-swallow'); void p.offsetWidth; p.classList.add('tell-' + tl); hap('pulse'); }
+function setPort(i, mood, nerve) { const p = G.people[i]; $('#iPort').innerHTML = A.portrait(p.art, { accent: G.st.accent, mood: mood || 'neutral', nerve: nerve != null ? nerve : G.nerve[i], label: p.name }); }
 function renderIHead() {
   const p = G.people[cur], n = G.nerve[cur], [c, tx] = chipFor(cur);
-  $('#iName').textContent = p.name; $('#iRole').textContent = p.rolelabel + ' · ' + p.look; setPort(cur, n >= 2 ? 'nervous' : 'neutral');
-  $('#iNerve').innerHTML = 'Composure ' + [0, 1, 2].map(k => `<i class="${k < 3 - n ? 'on' : ''} ${3 - n <= 1 ? 'hot' : ''}"></i>`).join('');
+  $('#iName').textContent = p.name; $('#iRole').textContent = p.rolelabel; setPort(cur, G.status[cur] === 'collapsed' ? 'caught' : n >= 2 ? 'nervous' : 'neutral');
+  $('#iNerve').innerHTML = '<span aria-label="Composure">😰</span>' + [0, 1, 2].map(k => `<i class="${k < 3 - n ? 'on' : ''} ${3 - n <= 1 ? 'hot' : ''}"></i>`).join('');
   $('#iStat').className = 'chip ' + c; $('#iStat').textContent = tx;
 }
 function renderIAct() {
   if (cur === null) return;
   const tps = E.topics(G, cur), a = $('#iAct'), dawn = G.dawn || G.over;
-  a.innerHTML = tps.map((t, i) => `<button class="ab ${t.done ? 'done' : ''} ${tps.length === 3 && i === 2 ? 'wide' : ''}" data-t="${t.id}">${esc(t.label)}<small>1 move</small></button>`).join('')
-    + polyBtn() + `<button class="ab ev" id="aEv">🗂️ Show evidence<small>right: 1 · wrong: 2</small></button><button class="ab acc" id="aAcc">☠️ Accuse<small>final</small></button>`;
+  const lab = { victim: '💀 ' + esc(G.V.short) + '?', gossip: '🗡️ Grudges?', saw: '👁️ Seen?' };
+  a.innerHTML = tps.map((t, i) => `<button class="ab ${t.done ? 'done' : ''} ${tps.length === 3 && i === 2 ? 'wide' : ''}" data-t="${t.id}" aria-label="${esc(t.label)}">${lab[t.id] || esc(t.label)}<small>${t.done ? '✓' : '⏱1'}</small></button>`).join('')
+    + polyBtn() + `<button class="ab ev" id="aEv" aria-label="Show evidence">🗂️ Evidence<small>⏱1 · ✗ ⏱2</small></button><button class="ab acc" id="aAcc" aria-label="Accuse">☠️ Accuse<small>final</small></button>`;
   a.querySelectorAll('[data-t]').forEach(b => b.onclick = () => doAsk(b.dataset.t));
   $('#aEv').onclick = () => pickEvidence(); $('#aAcc').onclick = () => openAccuse(false); if ($('#aPoly')) $('#aPoly').onclick = doPoly;
   a.classList.toggle('busy', busy || dawn);
@@ -330,33 +503,34 @@ async function playLines(i, lines) {
     if (cur !== i) { addLog(i, l.k, l.text, l.mood); continue; }
     const m = { k: l.k, text: l.text, mood: l.mood }; addLog(i, l.k, l.text, l.mood);
     const el = msgEl(m, true); $('#iLog').appendChild(el); scrollLog();
-    if (l.k === 's') { setPort(i, l.mood); await typeText(el, l.text, 14); }
-    else { el.textContent = l.text; if (l.k === 'b') await sleep(FAST ? 0 : 350); if (l.k === 'n') { S.sfx.chime(); boardNew += 0; } }
+    if (l.k === 's') { setPort(i, l.mood); await typeText(el, l.text, 16); }
+    else if (l.k === 'b') { tell(i, l.text); await sleep(FAST ? 0 : 700); }
+    else { el.textContent = l.text; if (l.k === 'n') S.sfx.chime(); }
   }
 }
-function youSay(text) { addLog(cur, 'you', text); const el = msgEl({ k: 'you', text }); $('#iLog').appendChild(el); scrollLog(); }
+function youSay(text, cls) { addLog(cur, 'you', text); const el = msgEl({ k: 'you', text }); if (cls) el.classList.add(cls); $('#iLog').appendChild(el); scrollLog(); }
 async function doAsk(topic) {
   if (busy || G.over || cur === null) return;
   const t = E.topics(G, cur).find(x => x.id === topic); if (!t || t.done) return;
   busy = true; renderIAct(); const i = cur;
-  youSay(({ victim: '“Tell me about ' + G.V.short + '.”', gossip: '“Who else had a reason?”', saw: '“What did you notice tonight?”' })[topic]);
+  youSay(({ victim: '“' + G.V.short + '?”', gossip: '“Who hated ' + G.V.short + '?”', saw: '“See anything?”' })[topic]);
   const r = E.ask(G, i, topic); if (!r.ok) { busy = false; renderIAct(); return; }
   updateHud(true); await sleep(FAST ? 0 : 350);
   await playLines(i, r.lines); renderIHead(); renderAll();
-  if (r.lines.some(l => l.k === 'n')) { toast('New lead: ' + G.st.exit.name, 'good'); S.sfx.chime(); }
+  if (r.lines.some(l => l.k === 'n')) { toast('🚪 ' + G.st.exit.name, 'good'); S.sfx.chime(); }
   await afterAction(r.events); busy = false; renderIAct(); if (cur !== null) setPort(cur, r.mood === 'caught' ? 'neutral' : r.mood);
 }
 async function pickEvidence() {
   if (busy || G.over) return;
   const clues = E.clueList(G);
   const sh = $('#sheet'); sh.hidden = false;
-  sh.innerHTML = `<div class="sbox"><h3>Show evidence to ${esc(G.people[cur].short)}</h3><p class="d">Pick the thing that contradicts their story. A wrong pick costs 2 moves.</p><div class="picks">${clues.map(c => `<button class="pk ${c.kind === 'testimony' ? 't' : ''}" data-c="${c.id}"><span class="ic">${c.icon}</span><span><b>${esc(c.title)}</b><small>${esc(c.text.length > 110 ? c.text.slice(0, 108) + '…' : c.text)}</small></span></button>`).join('')}</div><button class="cta alt" id="shCancel">Never mind</button></div>`;
+  sh.innerHTML = `<div class="sbox"><h3>🗂️ → ${esc(G.people[cur].short)}</h3><div class="picks tiles">${clues.map(c => `<button class="pk ${c.kind === 'testimony' ? 't' : ''}" data-c="${c.id}"><span class="ic">${c.icon}</span><span><b>${esc(c.title)}</b></span></button>`).join('')}</div><button class="cta alt" id="shCancel" aria-label="Never mind">✕</button></div>`;
   $('#shCancel').onclick = () => { sh.hidden = true; };
   sh.querySelectorAll('.pk').forEach(b => b.onclick = () => { sh.hidden = true; doPresent(b.dataset.c); });
 }
 async function doPresent(clueId) {
   if (busy || G.over || cur === null) return; busy = true; renderIAct(); const i = cur, c = G.clues[clueId];
-  youSay('*lays down: ' + c.title + '*');
+  youSay(c.icon + ' ' + c.title, 'ev');
   await sleep(FAST ? 0 : 450);
   const r = E.present(G, i, clueId); if (!r.ok) { busy = false; renderIAct(); return; }
   updateHud(true);
@@ -365,14 +539,14 @@ async function doPresent(clueId) {
     S.sfx.contra(); hap('crack'); document.body.classList.add('redflash'); pane.classList.add('shake'); const sf = $('#stampfx'); sf.hidden = false; sf.classList.remove('go'); void sf.offsetWidth; sf.classList.add('go');
     setPort(i, 'caught'); await sleep(FAST ? 0 : 900); sf.hidden = true; pane.classList.remove('shake'); document.body.classList.remove('redflash');
     boardNew += (r.newClues || []).length;
-  } else if (r.type === 'planted') { S.sfx.link(); hap('planted'); toast('A plant? Remember that smell.', 'good'); boardNew++;
-  } else if (r.type === 'miss') { S.sfx.wrong(); hap('miss'); pane.classList.add('shake'); setTimeout(() => pane.classList.remove('shake'), 450); toast('Wrong move. −2 moves', 'bad'); }
+  } else if (r.type === 'planted') { S.sfx.link(); hap('planted'); toast('🧤 A plant. Smell it.', 'good'); boardNew++;
+  } else if (r.type === 'miss') { S.sfx.wrong(); hap('miss'); pane.classList.add('shake'); setTimeout(() => pane.classList.remove('shake'), 450); toast('✗ ⏱ −2', 'bad'); }
   await playLines(i, r.lines);
   renderIHead(); renderAll();
   if (r.type === 'crack') {
-    if (r.brokeConfession) toast('You saw through the confession.', 'good');
-    for (const nc of (r.newClues || [])) { await sleep(FAST ? 0 : 300); await showClue(nc, 'New testimony'); }
-    if (r.lines.some(l => l.k === 'n')) { toast('New lead: ' + G.st.exit.name, 'good'); }
+    if (r.brokeConfession) toast('🎭 Saw through it', 'good');
+    for (const nc of (r.newClues || [])) { await sleep(FAST ? 0 : 300); await showClue(nc, 'testimony'); }
+    if (r.lines.some(l => l.k === 'n')) { toast('🚪 ' + G.st.exit.name, 'good'); }
     renderIHead();
   }
   await afterAction(r.events); busy = false; renderIAct();
@@ -385,10 +559,10 @@ function openAccuse(forced) {
     let sel = null, proof = null; const sh = $('#sheet'); sh.hidden = false;
     const clues = E.clueList(G);
     const draw = () => {
-      sh.innerHTML = `<div class="sbox"><h3>${forced ? 'Dawn. Name the killer.' : 'Make your accusation'}</h3><p class="d">Pick the killer, then your best proof. There is no second try.</p>
-      <div class="sus4">${G.people.map(p => `<button class="pk ${sel === p.idx ? 'sel' : ''}" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</div><div class="i"><b>${esc(p.short)}</b><small>${esc(chipFor(p.idx)[1])}</small></div></button>`).join('')}</div>
-      <div class="picks"><button class="pk ${proof === null ? 'sel' : ''}" data-p=""><span class="ic">🎲</span><span><b>No proof, just a hunch</b><small>Risky. Worth fewer points.</small></span></button>${clues.map(c => `<button class="pk ${c.kind === 'testimony' ? 't' : ''} ${proof === c.id ? 'sel' : ''}" data-p="${c.id}"><span class="ic">${c.icon}</span><span><b>${esc(c.title)}</b><small>${esc(c.text.length > 90 ? c.text.slice(0, 88) + '…' : c.text)}</small></span></button>`).join('')}</div>
-      <button class="cta" id="goAcc" ${sel === null ? 'disabled style="opacity:.4"' : ''}>${sel === null ? 'Pick a suspect' : 'Accuse ' + esc(G.people[sel].short)}</button>${forced ? '' : '<button class="cta alt" id="shCancel">Not yet</button>'}</div>`;
+      sh.innerHTML = `<div class="sbox"><h3>${forced ? '☀️ Dawn. Name them.' : '☠️ Who did it?'}</h3>
+      <div class="sus4">${G.people.map(p => `<button class="pk ${sel === p.idx ? 'sel' : ''}" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: sel === p.idx ? 'nervous' : 'neutral', nerve: sel === p.idx ? 3 : 0, label: p.name })}</div><div class="i"><b>${esc(p.short)}</b><small>${esc(chipFor(p.idx)[1])}</small></div></button>`).join('')}</div>
+      <h3 class="sub2">🧾 Proof</h3><div class="picks tiles"><button class="pk ${proof === null ? 'sel' : ''}" data-p=""><span class="ic">🎲</span><span><b>Hunch</b></span></button>${clues.map(c => `<button class="pk ${c.kind === 'testimony' ? 't' : ''} ${proof === c.id ? 'sel' : ''}" data-p="${c.id}"><span class="ic">${c.icon}</span><span><b>${esc(c.title)}</b></span></button>`).join('')}</div>
+      <button class="cta" id="goAcc" ${sel === null ? 'disabled style="opacity:.4"' : ''}>${sel === null ? 'Pick one' : '☠️ Accuse ' + esc(G.people[sel].short)}</button>${forced ? '' : '<button class="cta alt" id="shCancel">Not yet</button>'}</div>`;
       sh.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { S.sfx.tap(); sel = +b.dataset.i; draw(); });
       sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.sfx.tap(); proof = b.dataset.p || null; draw(); });
       const c = $('#shCancel'); if (c) c.onclick = () => { sh.hidden = true; resolve(); };
@@ -397,6 +571,7 @@ function openAccuse(forced) {
     draw();
   });
 }
+
 async function finish(idx, proof) {
   busy = true; const res = E.accuse(G, idx, proof); over = true;
   $('#interview').hidden = true; cur = null;
@@ -414,16 +589,16 @@ async function finish(idx, proof) {
 /* ---------- séance: the victim's ghost drags a planchette across a spirit board and spells one true word ---------- */
 const isHalloween = () => { const d = new Date(); return (d.getMonth() === 9 && d.getDate() >= 30) || (d.getMonth() === 10 && d.getDate() === 1) || /[?&]halloween\b/.test(location.search); };
 function seanceBtn(id) {
-  return G.seanceWord ? `<button class="sebtn used" id="${id}"><span>👻</span><span><b>The spirit spelled: ${esc(G.seanceWord)}</b><small>Who smells of it? Check their notes.</small></span></button>`
-    : `<button class="sebtn" id="${id}"><span>🔮</span><span><b>Hold a séance</b><small>Ask ${esc(G.V.short)} who did it · ${E.SEANCE_COST} moves · −100 pts · once</small></span></button>`;
+  return G.seanceWord ? `<button class="tool sebtn used" id="${id}"><span>👻</span><b>${esc(G.seanceWord)}</b><small>👃 ?</small></button>`
+    : `<button class="tool sebtn" id="${id}" aria-label="Hold a séance"><span>🔮</span><b>Séance</b><small>⏱${E.SEANCE_COST} · −100</small></button>`;
 }
 const BOARD = (() => { const P = {}, arc = (str, y0, depth, x0, x1) => { const n = str.length; for (let i = 0; i < n; i++) { const k = i / (n - 1); P[str[i]] = [x0 + (x1 - x0) * k, y0 + depth * (1 - Math.sin(Math.PI * k))]; } };
   arc('ABCDEFGHIJKLM', 30, 9, 7, 93); arc('NOPQRSTUVWXYZ', 52, 9, 9, 91); arc('1234567890', 76, 0, 18, 82);
   P.YES = [13, 10]; P.NO = [87, 10]; P.GOODBYE = [50, 91]; P[' '] = [50, 64]; return P; })();
 async function doSeance() {
   if (busy || G.over) return;
-  if (G.seanceWord) { S.sfx.tap(); return toast('👻 ' + G.V.short + ' already said: ' + G.seanceWord); }
-  const ok = await modal(`<div class="dark seancepre"><div class="crystal">🔮</div><h3>A SÉANCE?</h3><p>Madame Ostrova keeps a spirit board in her handbag and a candle in her coat. ${esc(G.V.short)} can't name a name. The dead never can. But they remember what was on the air.</p><ul class="ul"><li>Costs <b>${E.SEANCE_COST} moves</b> and <b>100 points</b>. Once per case.</li><li>Rest a finger on the board. <b>Don't push.</b> Let ${esc(G.V.short)} move it.</li></ul><button class="btn" data-r="go">Light the candles</button><button class="btn alt" data-r="no">Leave the dead alone</button></div>`);
+  if (G.seanceWord) { S.sfx.tap(); return toast('👻 ' + G.seanceWord); }
+  const ok = await modal(`<div class="dark seancepre"><div class="crystal">🔮</div><h3>A SÉANCE?</h3><p>The dead can't name names. They remember smells.</p><div class="chips c"><span>⏱ −${E.SEANCE_COST}</span><span>−100</span><span>☝️ hold</span></div><button class="btn" data-r="go">Light the candles</button><button class="btn alt" data-r="no">Leave the dead</button></div>`);
   if (ok !== 'go') return;
   busy = true; const r = E.seance(G); if (!r.ok) { busy = false; return; }
   G.seanceWord = r.word; updateHud(true);
@@ -435,13 +610,13 @@ function runSeance(r) {
   return new Promise(done => {
     const v = G.V, ov = document.createElement('div'); ov.className = 'seance'; ov.id = 'seance';
     const letters = Object.keys(BOARD).filter(k => k.length === 1 && k !== ' ');
-    ov.innerHTML = `<div class="sfog"></div><div class="ghost" aria-hidden="true"><svg viewBox="0 0 120 150"><defs><radialGradient id="gG" cx="50%" cy="35%" r="65%"><stop offset="0" stop-color="#f4ecff" stop-opacity=".95"/><stop offset=".6" stop-color="#b9a4ff" stop-opacity=".55"/><stop offset="1" stop-color="#7a5cff" stop-opacity="0"/></radialGradient></defs><path d="M60 6C30 6 14 30 14 60v70l12-10 12 12 11-12 11 12 11-12 12 12 12-10V60C106 30 90 6 60 6z" fill="url(#gG)"/><ellipse cx="45" cy="56" rx="7" ry="10" fill="#140b24"/><ellipse cx="75" cy="56" rx="7" ry="10" fill="#140b24"/><ellipse cx="60" cy="84" rx="8" ry="11" fill="#140b24" opacity=".85"/></svg></div>
+    ov.innerHTML = `<div class="sfog"></div><div class="ghost" aria-hidden="true"><svg viewBox="0 0 120 150"><defs><radialGradient id="gG" cx="50%" cy="35%" r="65%"><stop offset="0" stop-color="#f1ece0" stop-opacity=".95"/><stop offset=".6" stop-color="#9fc7bf" stop-opacity=".55"/><stop offset="1" stop-color="#4e8c86" stop-opacity="0"/></radialGradient></defs><path d="M60 6C30 6 14 30 14 60v70l12-10 12 12 11-12 11 12 11-12 12 12 12-10V60C106 30 90 6 60 6z" fill="url(#gG)"/><ellipse cx="45" cy="56" rx="7" ry="10" fill="#0b1312"/><ellipse cx="75" cy="56" rx="7" ry="10" fill="#0b1312"/><ellipse cx="60" cy="84" rx="8" ry="11" fill="#0b1312" opacity=".85"/></svg></div>
       <div class="shead"><small>THE SÉANCE · ${esc(G.st.name)}</small><b>${esc(v.full)}</b><em>is listening</em></div>
       <div class="spelled" id="spelled" aria-live="polite"></div>
       <div class="oboard" id="oboard"><div class="sun">☀</div><div class="moon">☾</div>${letters.map(k => `<span class="ol" data-k="${k}" style="left:${BOARD[k][0]}%;top:${BOARD[k][1]}%">${k}</span>`).join('')}
         <span class="ol w" data-k="YES" style="left:${BOARD.YES[0]}%;top:${BOARD.YES[1]}%">YES</span><span class="ol w" data-k="NO" style="left:${BOARD.NO[0]}%;top:${BOARD.NO[1]}%">NO</span><span class="ol w bye" data-k="GOODBYE" style="left:50%;top:${BOARD.GOODBYE[1]}%">GOODBYE</span>
         <div class="planch" id="planch"><i></i></div></div>
-      <div class="shint" id="shint">☝️ Rest a finger on the board. Don't push.</div>
+      <div class="shint" id="shint">☝️</div>
       <div class="candles">${[0, 1, 2].map(i => `<div class="cdl" style="--d:${i * 0.37}s"><b></b><span></span></div>`).join('')}</div>`;
     document.body.appendChild(ov); S.sfx.seance(true); S.sfx.thunder(false); hap('heavy');
     const bd = $('#oboard'), pl = $('#planch'), sp = $('#spelled'), hint = $('#shint');
@@ -455,7 +630,7 @@ function runSeance(r) {
     const step = now => {
       const dt = Math.min(50, now - lastT) / 1000; lastT = now; const T = (now - t0) / 1000;
       const moving = touch || auto;
-      if (!moving) { idle += dt; if (idle > 5) { hint.classList.remove('gone'); hint.textContent = '☝️ ' + v.short + ' can\'t move it alone. Touch the board.'; } }
+      if (!moving) { idle += dt; if (idle > 5) { hint.classList.remove('gone'); hint.textContent = '☝️ …'; } }
       else idle = 0;
       if (qi < seq.length) {
         const tg = BOARD[seq[qi]], dx = tg[0] - pos[0], dy = tg[1] - pos[1], d = Math.hypot(dx, dy);
@@ -480,7 +655,7 @@ function runSeance(r) {
       setTimeout(() => {
         S.sfx.seance(false);
         const card = document.createElement('div'); card.className = 'scard';
-        card.innerHTML = `<small>THE SPIRIT SPELLED</small><div class="sword">${esc(word)}</div><p>${esc(r.text)}</p><p class="sm">Every suspect smells of something. Match it. Then find proof the living will believe.</p><button class="btn" id="seDone">Back to the living</button>`;
+        card.innerHTML = `<small>THE SPIRIT SPELLED</small><div class="sword">${esc(word)}</div><p class="sm">👃 Who smells of it?</p><button class="btn" id="seDone">Back to the living</button>`;
         ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on'));
         $('#seDone').onclick = () => { S.sfx.tap(); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(); }, FAST ? 0 : 450); };
       }, FAST ? 0 : 1500);
@@ -492,18 +667,18 @@ function runSeance(r) {
 /* ---------- the wall safe: spin the dial by ear, feel for the tumblers, set three wheels. Or blow the door off. ---------- */
 const SAFE_DIRS = [1, -1, 1]; // right (clockwise), left, right
 function safeBtn(id) {
-  if (G.safe) return `<button class="sfbtn used" id="${id}"><span>🔓</span><span><b>Safe ${G.safe.how === 'blow' ? 'blown' : 'cracked'}: frame 17 is on the Board</b><small>${esc(G.people[G.safe.idx].short)} is in the photograph. Not the killer.</small></span></button>`;
-  return `<button class="sfbtn" id="${id}"><span>🔐</span><span><b>Crack ${esc(G.V.short)}'s wall safe</b><small>By ear: 1 move · +${E.SAFE_BONUS} pts · or blow it: 2 moves · once</small></span></button>`;
+  if (G.safe) return `<button class="tool sfbtn used" id="${id}"><span>🔓</span><b>Frame 17</b><small>✓ ${esc(G.people[G.safe.idx].short)}</small></button>`;
+  return `<button class="tool sfbtn" id="${id}" aria-label="Crack the wall safe"><span>🔐</span><b>Safe</b><small>⏱1 · +${E.SAFE_BONUS}</small></button>`;
 }
 function safeNote() {
   if (!G.safe) return '';
   const p = G.people[G.safe.idx], o = G.people.find(x => x.idx !== p.idx && G.notes[x.idx].some(n => n.kind === 'safe'));
-  return `<div class="safenote ${G.safe.how === 'blow' ? 'blown' : 'clean'}"><div class="neg">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><div><b>${G.safe.how === 'blow' ? '🧨 FROM THE BLOWN SAFE' : '🔐 FROM THE SAFE'}</b><p>${esc(G.safe.text)}</p></div></div>`;
+  return `<div class="safenote ${G.safe.how === 'blow' ? 'blown' : 'clean'}"><div class="neg">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><div><b>${G.safe.how === 'blow' ? '🧨 FRAME 17' : '🔐 FRAME 17'}</b><p>${esc(G.safe.text)}</p></div></div>`;
 }
 async function doSafe() {
   if (busy || G.over) return;
-  if (G.safe) { S.sfx.tap(); return toast('🔓 Already open. Frame 17 is pinned to the Board.'); }
-  const ok = await modal(`<div class="dark safepre"><div class="crystal">🔐</div><h3>THE WALL SAFE</h3><p>Behind a bad oil painting in ${esc(G.V.short)}'s office: a Mosler, 1931, forty numbers on the dial. The house photographer swears the night's contact sheet is in there.</p><ul class="ul"><li><b>Crack it by ear</b> (1 move, +${E.SAFE_BONUS} pts): turn the dial <b>RIGHT ↻</b>, then <b>LEFT ↺</b>, then <b>RIGHT ↻</b>. Go slow. When a tumbler lines up you'll hear (and see) a heavy <b>CLUNK</b>. Stop and hit <b>SET</b>.</li><li>Or <b>blow it</b> with Lefty's dynamite: 2 moves, no bonus.</li><li>Sound on helps. Walk away any time, free.</li></ul><button class="btn" data-r="go">Swing the painting aside</button><button class="btn alt" data-r="no">Leave it</button></div>`);
+  if (G.safe) { S.sfx.tap(); return toast('🔓 Frame 17 📌'); }
+  const ok = await modal(`<div class="dark safepre"><div class="crystal">🔐</div><h3>THE WALL SAFE</h3><p>The night's photos are inside.</p><div class="chips c"><span>↻ ↺ ↻</span><span>🩺 CLUNK</span><span>⏱1 · +${E.SAFE_BONUS}</span><span>🧨 ⏱2</span></div><button class="btn" data-r="go">Swing the painting aside</button><button class="btn alt" data-r="no">Leave it</button></div>`);
   if (ok !== 'go') return;
   busy = true; if (S.setScene) S.setScene('safe');
   const how = await runSafe();
@@ -520,13 +695,13 @@ function runSafe() {
     const ov = document.createElement('div'); ov.className = 'safe'; ov.id = 'safe';
     const ticks = Array.from({ length: N }, (_, i) => `<line x1="100" y1="${i % 5 ? 14 : 10}" x2="100" y2="${i % 5 ? 22 : 26}" transform="rotate(${i * 360 / N} 100 100)"/>`).join('');
     const nums = Array.from({ length: N / 5 }, (_, k) => `<text x="100" y="40" transform="rotate(${k * 5 * 360 / N} 100 100)">${k * 5}</text>`).join('');
-    ov.innerHTML = `<div class="sfhead"><small>THE WALL SAFE · ${esc(G.st.name.toUpperCase())}</small><b>Crack it by ear</b><em id="sfMsg">Wheel 1: turn RIGHT ↻ until it clunks.</em></div>
+    ov.innerHTML = `<div class="sfhead"><small>THE WALL SAFE · ${esc(G.st.name.toUpperCase())}</small><b>By ear</b><em id="sfMsg">1 · RIGHT ↻ · listen</em></div>
       <div class="sfwheels">${[0, 1, 2].map(i => `<div class="sfw" data-w="${i}"><i>${SAFE_DIRS[i] > 0 ? '↻' : '↺'}</i><b>?</b><small>${SAFE_DIRS[i] > 0 ? 'RIGHT' : 'LEFT'}</small></div>`).join('')}</div>
       <div class="sfscope"><canvas id="sfScope"></canvas><span>🩺 STETHOSCOPE</span></div>
       <div class="sfdoor" id="sfDoor"><div class="sfriv">${Array.from({ length: 8 }, (_, i) => `<i style="--a:${i * 45}deg"></i>`).join('')}</div><div class="sfbrand">MOSLER &amp; SONS · 1931</div>
         <div class="sfidx">▼</div><div class="sfdial" id="sfDial"><svg viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="sfG" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#f5f1e6"/><stop offset=".55" stop-color="#b8b2a4"/><stop offset="1" stop-color="#4c4840"/></radialGradient></defs><circle cx="100" cy="100" r="96" fill="url(#sfG)" stroke="#2a2620" stroke-width="3"/><g class="tk">${ticks}</g><g class="nm">${nums}</g><circle cx="100" cy="100" r="44" fill="#26231e" stroke="#8a836f" stroke-width="2"/><circle cx="100" cy="100" r="30" fill="url(#sfG)"/><path d="M100 58v14" stroke="#c8102e" stroke-width="5" stroke-linecap="round"/></svg></div><div class="sfnum" id="sfNum">0</div>
         <div class="sfin" id="sfIn"></div></div>
-      <div class="sfact"><button class="btn sfset" id="sfSet">🔒 SET WHEEL 1</button><div class="sfrow"><button class="sfblow" id="sfBlow">🧨 Blow it · 2 moves</button><button class="sfaway" id="sfAway">Walk away</button></div></div>`;
+      <div class="sfact"><button class="btn sfset" id="sfSet">🔒 SET WHEEL 1</button><div class="sfrow"><button class="sfblow" id="sfBlow">🧨 ⏱2</button><button class="sfaway" id="sfAway">Walk away</button></div></div>`;
     document.body.appendChild(ov); hap('heavy'); S.sfx.page();
     const dial = $('#sfDial'), numEl = $('#sfNum'), msg = $('#sfMsg'), setB = $('#sfSet'), cv = $('#sfScope'), cx = cv.getContext('2d');
     const dpr = Math.min(2, devicePixelRatio || 1); const sz = () => { cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; }; sz();
@@ -546,25 +721,25 @@ function runSafe() {
     dial.addEventListener('pointermove', e => { if (drag === null) return; const a = angOf(e); let d = a - drag; if (d > 180) d -= 360; if (d < -180) d += 360; drag = a; if (Math.abs(d) < 0.01) return;
       const nd = d > 0 ? 1 : -1; if (nd !== dir) { dir = nd; hintDir(); } ang += d; setDial(); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => dial.addEventListener(k, () => { drag = null; ov.classList.remove('grip'); }));
-    const hintDir = () => { if (w >= 3) return; const good = dir === SAFE_DIRS[w]; ov.classList.toggle('wrongway', !good); if (!good) msg.textContent = 'Wrong way. Wheel ' + (w + 1) + ' turns ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '.'; else msg.textContent = 'Wheel ' + (w + 1) + ': keep turning ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '. Listen for the clunk.'; };
+    const hintDir = () => { if (w >= 3) return; const good = dir === SAFE_DIRS[w]; ov.classList.toggle('wrongway', !good); if (!good) msg.textContent = '✗ ' + (w + 1) + ' · ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺'); else msg.textContent = (w + 1) + ' · ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + ' · listen'; };
     const wheelEl = i => ov.querySelector(`.sfw[data-w="${i}"]`);
     const doSet = () => { if (closed || w >= 3) return; const n = numAt(ang);
       if (cdist(n, combo[w]) <= 1 && dir === SAFE_DIRS[w]) {
         const el = wheelEl(w); el.classList.add('ok'); el.querySelector('b').textContent = combo[w]; S.sfx.wheelSet(w); hap('crack'); w++; energy = 1; ring = 1.3;
         ov.classList.remove('wrongway'); dir = 0;
-        if (w < 3) { msg.textContent = 'Wheel ' + w + ' set at ' + combo[w - 1] + '. Wheel ' + (w + 1) + ': turn ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + '.'; setB.textContent = '🔒 SET WHEEL ' + (w + 1); wheelEl(w).classList.add('on'); }
+        if (w < 3) { msg.textContent = '✓ ' + combo[w - 1] + ' · ' + (w + 1) + ' · ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺'); setB.textContent = '🔒 SET WHEEL ' + (w + 1); wheelEl(w).classList.add('on'); }
         else openUp('crack');
       } else { misses++; S.sfx.wheelBad(); hap('miss'); ov.classList.remove('shake'); void ov.offsetWidth; ov.classList.add('shake');
-        msg.textContent = (dir !== SAFE_DIRS[w] ? 'The wheel slips. Turn it ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + ' first.' : 'Nothing caught at ' + n + '. Go back, slower. Wait for the heavy CLUNK.') + (misses >= 4 ? ' (Or blow it.)' : '');
+        msg.textContent = (dir !== SAFE_DIRS[w] ? '✗ ' + (SAFE_DIRS[w] > 0 ? 'RIGHT ↻' : 'LEFT ↺') + ' first' : '✗ ' + n + '. Slower. Wait for CLUNK') + (misses >= 4 ? ' · 🧨?' : '');
         if (misses >= 4) $('#sfBlow').classList.add('pulse'); } };
     setB.onclick = doSet;
     $('#sfAway').onclick = () => { if (closed) return; close(null); };
     $('#sfBlow').onclick = () => { if (closed || w >= 3) return; w = 3; blow(); };
     wheelEl(0).classList.add('on');
     const close = how => { closed = true; cancelAnimationFrame(raf); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(how); }, FAST ? 0 : 420); };
-    const openUp = how => { setB.disabled = true; msg.textContent = how === 'blow' ? 'Well. That\'s one way.' : 'All three wheels. Throw the handle.';
+    const openUp = how => { setB.disabled = true; msg.textContent = how === 'blow' ? 'One way to do it.' : 'Throw the handle.';
       setTimeout(() => { S.sfx.safeOpen(); hap('lift'); ov.classList.add('open'); if (window.NoirFx && how !== 'blow') NoirFx.flash(); setTimeout(() => close(how), FAST ? 0 : 1700); }, FAST ? 0 : how === 'blow' ? 200 : 650); };
-    const blow = () => { setB.disabled = true; $('#sfBlow').disabled = true; ov.classList.add('fuse'); msg.textContent = 'Lefty lights the fuse. Everybody down!'; S.sfx.fuse();
+    const blow = () => { setB.disabled = true; $('#sfBlow').disabled = true; ov.classList.add('fuse'); msg.textContent = 'Fuse lit. Down!'; S.sfx.fuse();
       setTimeout(() => { S.sfx.boom(); S.sfx.thunder(true); hap('boom'); ov.classList.remove('fuse'); ov.classList.add('boom'); if (window.NoirFx) NoirFx.flash(); energy = 1; ring = 2; openUp('blow'); }, FAST ? 0 : 1600); };
     // the stethoscope trace + the auto-cracker for tests and demos
     let ai = { w: 0, phase: 'spin', t: 0, spun: 0 };
@@ -584,23 +759,23 @@ function runSafe() {
 async function showSafeCard(r) {
   const p = G.people[r.idx], o = G.people.find(x => x.idx !== p.idx && G.notes[x.idx].some(n => n.kind === 'safe'));
   S.sfx.page(); hap('lift');
-  await modal(`<div class="dark safecard ${r.how === 'blow' ? 'blown' : 'clean'}"><small>${r.how === 'blow' ? '🧨 WHAT SURVIVED THE BLAST' : '🔓 INSIDE THE SAFE'}</small><div class="neg big">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><p id="sfTx"></p><ul class="ul"><li>Pinned to the Board.${r.how === 'crack' ? ' <b>+' + E.SAFE_BONUS + ' pts</b> for a clean job.' : ''}</li></ul><button class="btn" data-r="ok">Pin it</button></div>`, () => typeText($('#sfTx'), r.text, 12));
+  await modal(`<div class="dark safecard ${r.how === 'blow' ? 'blown' : 'clean'}"><small>${r.how === 'blow' ? '🧨 WHAT SURVIVED' : '🔓 INSIDE'}</small><div class="neg big">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><p id="sfTx"></p>${r.how === 'crack' ? '<div class="chips c"><span>+' + E.SAFE_BONUS + '</span></div>' : ''}<button class="btn" data-r="ok">📌 Pin it</button></div>`, () => typeText($('#sfTx'), r.text, 12));
 }
 
 /* ---------- the lie box: a 1940s polygraph. Hold the lever, the chart paper rolls, three pens draw the suspect's pulse, breath and sweat ---------- */
 const POLY_TAG = { true: ['TRUE', 'ok'], lie: ['LIE', 'bad'], jump: ['SPIKE', 'bad'], ice: ['FLAT', 'ice'] };
 function polyBtn() {
   if (!G.met[cur]) return '';
-  if (G.poly && G.poly[cur]) return `<button class="ab poly wide done" id="aPoly">📈 Lie box: strip pinned to the Board<small>${esc(POLY_TAG[G.poly[cur].murder][0])} on the murder question</small></button>`;
+  if (G.poly && G.poly[cur]) return `<button class="ab poly wide done" id="aPoly">📈 ${esc(POLY_TAG[G.poly[cur].murder][0])}<small>📌</small></button>`;
   const n = E.polyLeft(G);
-  return `<button class="ab poly wide ${n < 1 ? 'out' : ''}" id="aPoly">📈 Strap ${esc(G.people[cur].short)} to the lie box<small>${n < 1 ? 'out of chart paper tonight' : '1 move · −40 pts · ' + n + ' strip' + (n === 1 ? '' : 's') + ' of paper left'}</small></button>`;
+  return `<button class="ab poly wide ${n < 1 ? 'out' : ''}" id="aPoly" aria-label="Lie box">📈 Lie box<small>${n < 1 ? '📄 0' : '⏱1 · −40 · 📄 ' + n}</small></button>`;
 }
 async function doPoly() {
   if (busy || G.over || cur === null) return;
   const i = cur, p = G.people[i];
-  if (G.poly && G.poly[i]) { S.sfx.tap(); return toast('📈 ' + p.short + '\'s strip is already on the Board.'); }
-  if (E.polyLeft(G) < 1) { S.sfx.wrong(); return toast('📈 Out of chart paper. Two strips a night.'); }
-  const ok = await modal(`<div class="dark polypre"><div class="crystal">📈</div><h3>THE LIE BOX?</h3><p>Officer Keeler wheels in the polygraph: a walnut case, three ink pens, a roll of chart paper. A cuff on the arm, a tube round the chest, two brass plates under ${esc(p.short)}'s fingertips.</p><ul class="ul"><li>Costs <b>1 move</b> and <b>40 points</b>. Paper for <b>${E.polyLeft(G)} strip${E.polyLeft(G) === 1 ? '' : 's'}</b> tonight, one per suspect.</li><li><b>Hold the lever</b> to roll the paper. Three questions. Watch the needles.</li></ul><button class="btn" data-r="go">Strap ${esc(p.short)} in</button><button class="btn alt" data-r="no">Not yet</button></div>`);
+  if (G.poly && G.poly[i]) { S.sfx.tap(); return toast('📈 📌'); }
+  if (E.polyLeft(G) < 1) { S.sfx.wrong(); return toast('📄 0'); }
+  const ok = await modal(`<div class="dark polypre"><div class="crystal">📈</div><h3>THE LIE BOX?</h3><p>Three pens. Three questions.</p><div class="chips c"><span>⏱ −1</span><span>−40</span><span>📄 ${E.polyLeft(G)}</span><span>✊ hold</span></div><button class="btn" data-r="go">Strap ${esc(p.short)} in</button><button class="btn alt" data-r="no">Not yet</button></div>`);
   if (ok !== 'go') return;
   busy = true; renderIAct(); const r = E.polygraph(G, i); if (!r.ok) { busy = false; renderIAct(); return; }
   updateHud(true);
@@ -611,10 +786,10 @@ async function doPoly() {
 function runPoly(p, r) {
   return new Promise(done => {
     const ov = document.createElement('div'); ov.className = 'liebox'; ov.id = 'liebox';
-    ov.innerHTML = `<div class="lbhead"><div class="lbport" id="lbPort">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', nerve: G.nerve[p.idx], label: p.name })}</div><div class="lbinf"><small>THE LIE BOX · KEELER MODEL 6</small><b>${esc(p.name)}</b><em id="lbQ">Cuff on. Plates under the fingers.</em></div><div class="lbbpm" id="lbBpm"><b>--</b><small>BPM</small></div></div>
+    ov.innerHTML = `<div class="lbhead"><div class="lbport" id="lbPort">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', nerve: G.nerve[p.idx], label: p.name })}</div><div class="lbinf"><small>THE LIE BOX · KEELER MODEL 6</small><b>${esc(p.name)}</b><em id="lbQ">Cuff on.</em></div><div class="lbbpm" id="lbBpm"><b>--</b><small>BPM</small></div></div>
       <div class="lbmach"><div class="lbpaper" id="lbPaper"><canvas id="lbC"></canvas><canvas id="lbA"></canvas><div class="lblab"><span class="l1">PULSE</span><span class="l2">BREATH</span><span class="l3">SWEAT</span></div></div><div class="lbbrass"><i></i><i></i><i></i><i></i></div></div>
       <div class="lbqs">${r.qs.map((q, k) => `<div class="lbq" data-k="${k}"><span class="n">Q${k + 1}</span><span class="tx">${esc(q.q)}</span><span class="pill"></span></div>`).join('')}</div>
-      <div class="lbhint" id="lbHint">✊ Hold the lever to roll the paper</div>
+      <div class="lbhint" id="lbHint">✊ ↓</div>
       <button class="lblever" id="lbLever" data-now aria-label="Hold to roll the chart paper"><span class="knob"></span><b>HOLD TO ROLL</b></button>`;
     document.body.appendChild(ov); S.sfx.poly(true); hap('heavy');
     const paper = $('#lbPaper'), pc = $('#lbC'), ac = $('#lbA'), lever = $('#lbLever'), bpmEl = $('#lbBpm b'), qEl = $('#lbQ'), hint = $('#lbHint');
@@ -655,7 +830,7 @@ function runPoly(p, r) {
     const step = now => {
       const dtR = Math.min(0.05, (now - last) / 1000); last = now;
       const rolling = (hold || auto) && !finished, dt = rolling ? dtR * rate : 0;
-      if (!rolling && !finished && !auto) { idle += dtR; if (idle > 4) { hint.classList.remove('gone'); hint.textContent = '✊ Keep holding the lever. ' + p.short + ' is sweating it out.'; } } else idle = 0;
+      if (!rolling && !finished && !auto) { idle += dtR; if (idle > 4) { hint.classList.remove('gone'); hint.textContent = '✊ ↓'; } } else idle = 0;
       const kind = read(), e = tq < ASK ? 0 : Math.min(1, (tq - ASK) / 0.7) * (tq > SEG - 0.35 ? Math.max(0.35, (SEG - tq) / 0.35) : 1), s = sig(kind, e);
       if (rolling) {
         T += dt; tq += dt; const ph0 = beatPh; beatPh = (beatPh + dt * s.bpm / 60) % 1;
@@ -692,7 +867,7 @@ function runPoly(p, r) {
       setTimeout(() => {
         cancelAnimationFrame(raf); done._closed = true; S.sfx.poly(false);
         const [txt, cl] = POLY_TAG[r.murder], card = document.createElement('div'); card.className = 'lbcard ' + cl;
-        card.innerHTML = `<small>KEELER'S READING · ${esc(p.short.toUpperCase())}</small><div class="lbverd">${txt}</div><p>${esc(r.verdict)}</p><p class="sm">Story: <b>${r.story ? 'spiked' : 'steady'}</b>. The strip is pinned to ${esc(p.short)}'s folder on the Board. ${r.left ? r.left + ' strip of paper left tonight.' : 'That was the last of the paper.'}</p><button class="btn" id="lbDone">Tear off the strip</button>`;
+        card.innerHTML = `<small>📈 ${esc(p.short.toUpperCase())}</small><div class="lbverd">${txt}</div><p>${esc(r.verdict)}</p><div class="chips c"><span>Story: ${r.story ? 'spiked' : 'steady'}</span><span>📄 ${r.left}</span></div><button class="btn" id="lbDone">Tear off the strip</button>`;
         ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on')); hap(cl === 'ice' ? 'heavy' : 'link');
         $('#lbDone').onclick = () => { S.sfx.page(); hap('lift'); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(); }, FAST ? 0 : 450); };
       }, FAST ? 0 : 900);
@@ -712,13 +887,13 @@ const CHASE_WHERE = {
 const CHASE_T = 24, CHASE_BONUS = 150, CHASE_D0 = 60;
 function runChase(k) {
   return new Promise(done => {
-    const st = G.st, P = st.pal || {}, acc = st.accent, acc2 = P.acc2 || '#39e0ff', gold = P.gold || '#ffcf5c', wh = CHASE_WHERE[st.id] || CHASE_WHERE.club;
+    const st = G.st, P = st.pal || {}, acc = st.accent, acc2 = P.acc2 || '#4e8c86', gold = P.gold || '#ffcf5c', wh = CHASE_WHERE[st.id] || CHASE_WHERE.club;
     const auto = /[?&]autochase\b/.test(location.search), flat = st.id === 'train';
     const ov = document.createElement('div'); ov.className = 'chase'; ov.id = 'chase'; ov.style.setProperty('--acc', acc); ov.style.setProperty('--acc2', acc2);
     ov.innerHTML = `<canvas id="chC"></canvas><label class="chtap" id="chTap" aria-label="Tap to jump"><input type="checkbox" tabindex="-1" ${Hap.on ? 'switch' : ''}></label>
-      <div class="chhead"><div class="chport">${A.portrait(k.art, { accent: acc, mood: 'smug', nerve: 0, label: k.name })}</div><div class="chinf"><small>THE CHASE · ${esc(wh[0].toUpperCase())}</small><b>${esc(k.short)} bolted!</b><em id="chMsg">${esc(wh[1][0].toUpperCase() + wh[1].slice(1))}. Collar ${k.g === 'f' ? 'her' : 'him'}.</em></div><div class="chclock" id="chClock"><b>${CHASE_T}</b><small>SEC</small></div></div>
+      <div class="chhead"><div class="chport">${A.portrait(k.art, { accent: acc, mood: 'smug', nerve: 0, label: k.name })}</div><div class="chinf"><small>THE CHASE</small><b>${esc(k.short)} bolted!</b><em id="chMsg">Collar ${k.g === 'f' ? 'her' : 'him'}!</em></div><div class="chclock" id="chClock"><b>${CHASE_T}</b><small>SEC</small></div></div>
       <div class="chgap"><span>🕵️</span><div class="chbar"><i id="chBar"></i></div><span>🏃</span><b id="chYds">${CHASE_D0} yds</b></div>
-      <div class="chtip" id="chTip">TAP to jump · HOLD to leap further</div><div class="chstamp" id="chStamp" hidden></div><button class="chskip" id="chSkip">Let the uniforms handle it</button>`;
+      <div class="chtip" id="chTip">TAP ↑ · HOLD ⤴</div><div class="chstamp" id="chStamp" hidden></div><button class="chskip" id="chSkip">🚔 Let the uniforms run</button>`;
     document.body.appendChild(ov); hap('heavy'); S.sfx.thunder(true); if (window.NoirFx) NoirFx.flash();
     const cv = ov.querySelector('#chC'), x = cv.getContext('2d'), tap = ov.querySelector('#chTap');
     const dpr = Math.min(2, devicePixelRatio || 1); let W = 0, H = 0;
@@ -776,7 +951,7 @@ function runChase(k) {
     function draw(dt) {
       const sx = shake > 0 ? (rnd() * 2 - 1) * shake * 8 : 0, sy = shake > 0 ? (rnd() * 2 - 1) * shake * 5 : 0;
       x.save(); x.translate(sx, sy);
-      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.bg || '#0b0710'); g.addColorStop(0.62, P.panel || '#22102f'); g.addColorStop(1, acc + '66'); x.fillStyle = g; x.fillRect(-20, -20, W + 40, H + 40);
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.bg || '#08070a'); g.addColorStop(0.62, P.panel || '#16130f'); g.addColorStop(1, acc + '66'); x.fillStyle = g; x.fillRect(-20, -20, W + 40, H + 40);
       // moon + neon haze
       const mx = W * 0.8, my = H * 0.17; const mg = x.createRadialGradient(mx, my, 4, mx, my, 120); mg.addColorStop(0, '#fff6dcdd'); mg.addColorStop(0.18, '#f4e7c255'); mg.addColorStop(1, '#0000'); x.fillStyle = mg; x.fillRect(mx - 130, my - 130, 260, 260); x.fillStyle = '#fbf3dc'; x.beginPath(); x.arc(mx, my, 20, 0, 7); x.fill();
       const lay = (L, par, base, col, winCol) => { const off = (cam * par) % L.len; for (let rep = -1; rep < 2; rep++) L.forEach(b => { const bx = b.x - off + rep * L.len; if (bx > W || bx + b.w < 0) return; const by = base - b.h; x.fillStyle = col; x.fillRect(bx, by, b.w, b.h + 400); if (b.tower) { x.fillRect(bx + b.w * 0.3, by - 26, b.w * 0.3, 26); x.fillRect(bx + b.w * 0.44, by - 44, 2, 18); }
@@ -784,7 +959,7 @@ function runChase(k) {
       lay(far, 0.12, H * 0.62, P.line || '#2a2238', gold + '55');
       // neon sign on the far layer
       const sgx = ((signAt - cam * 0.12) % 1600 + 1600) % 1600 - 100; if (sgx > -160 && sgx < W + 40) { const on = rnd() > 0.04; x.font = '900 22px Georgia,serif'; x.textAlign = 'left'; x.shadowColor = acc2; x.shadowBlur = on ? 18 : 0; x.fillStyle = on ? acc2 : acc2 + '33'; x.fillText(wh[2], sgx, H * 0.36); x.shadowBlur = 0; }
-      lay(mid, 0.38, H * 0.7, P.panel || '#1a1424', gold + '77');
+      lay(mid, 0.38, H * 0.7, P.panel || '#16130f', gold + '77');
       const hz = x.createLinearGradient(0, H * 0.45, 0, H * 0.75); hz.addColorStop(0, '#0000'); hz.addColorStop(1, acc + '55'); x.fillStyle = hz; x.fillRect(-20, H * 0.45, W + 40, H * 0.35);
       // rain
       x.strokeStyle = 'rgba(190,205,240,.32)'; x.lineWidth = 1; x.beginPath(); drops.forEach(d => { d.y += d.v * dt * 1.4; d.x -= (0.25 + v / 1800) * dt * d.v; if (d.y > 1) { d.y = -0.05; d.x = rnd() * 1.4; } if (d.x < -0.1) d.x += 1.4; const X = d.x * W, Y = d.y * H; x.moveTo(X, Y); x.lineTo(X - d.l * (0.3 + v / 1200), Y + d.l); }); x.stroke();
@@ -821,9 +996,9 @@ function runChase(k) {
       s.hidden = kind === 'skip';
       setTimeout(() => {
         const secs = Math.round(T0 * 10) / 10, card = document.createElement('div'); card.className = 'chcard ' + (kind === 'caught' ? 'ok' : 'bad');
-        card.innerHTML = kind === 'caught' ? `<small>THE COLLAR · ${secs}s · ${falls + bumps ? falls + bumps + ' stumble' + (falls + bumps === 1 ? '' : 's') : 'not a single stumble'}</small><div class="chverd">+${CHASE_BONUS}</div><p>You brought ${esc(k.short)} down ${esc(wh[1])}. The cuffs click shut in the rain.</p><button class="btn" id="chDone">Book 'em</button>`
-          : kind === 'gone' ? `<small>THE CHASE · ${Math.max(0, Math.ceil(dist))} yards short</small><div class="chverd">GONE</div><p>${esc(k.short)} ${esc(wh[3])}. The uniforms pick ${k.g === 'f' ? 'her' : 'him'} up at dawn. No collar bonus.</p><button class="btn" id="chDone">Close the case</button>`
-          : `<small>THE CHASE</small><div class="chverd">BADGE 714</div><p>You let the uniforms run. They get ${esc(k.short)} at the docks. No collar bonus.</p><button class="btn" id="chDone">Close the case</button>`;
+        card.innerHTML = kind === 'caught' ? `<small>⏱ ${secs}s · ✶ ${falls + bumps}</small><div class="chverd">+${CHASE_BONUS}</div><p>Cuffs click in the rain.</p><button class="btn" id="chDone">Book 'em</button>`
+          : kind === 'gone' ? `<small>${Math.max(0, Math.ceil(dist))} yds short</small><div class="chverd">GONE</div><p>${esc(k.short)} ${esc(wh[3])}.</p><button class="btn" id="chDone">Close the case</button>`
+          : `<small>THE CHASE</small><div class="chverd">BADGE 714</div><p>Picked up at the docks.</p><button class="btn" id="chDone">Close the case</button>`;
         ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on'));
         const fin = () => { S.sfx.page(); ov.classList.add('bye'); removeEventListener('resize', size); removeEventListener('keydown', key); removeEventListener('keyup', key); setTimeout(() => { cancelAnimationFrame(raf); ov.remove(); done({ caught: kind === 'caught', skipped: kind === 'skip', secs, stumbles: falls + bumps }); }, FAST ? 0 : 450); };
         card.querySelector('#chDone').onclick = fin; if (auto && /[?&]autoclose\b/.test(location.search)) setTimeout(fin, 400);
@@ -853,16 +1028,16 @@ function runChase(k) {
           else if (r && vy > 0 && pf <= r.y + 2 && feet >= r.y) { feet = r.y; grounded = true; S.sfx.land(Math.min(1, vy / 1100)); hap('dust'); vy = 0; }
           else if (r && feet > r.y + 2 && feet <= r.y + 26) { feet = r.y; grounded = true; vy = 0; S.sfx.land(0.4); } // mantle a ledge
           else if (r && feet > r.y + 26 && pf > r.y + 2) { // smacked the wall of a taller roof: scramble up, lose ground
-            feet = r.y; grounded = true; vy = 0; bumps++; dist += 7; stumble = 0.45; shake = 0.7; clean = 0; S.sfx.gutter(); hap('miss'); msg('Smacked a wall. Scrambled up.', 'bad'); }
+            feet = r.y; grounded = true; vy = 0; bumps++; dist += 7; stumble = 0.45; shake = 0.7; clean = 0; S.sfx.gutter(); hap('miss'); msg('Wall!', 'bad'); }
           if (feet > H + 40) { // fell: catch the gutter, haul up on the next roof
-            const nx = roofs.find(q => q.x > wx - 4) || roofs[roofs.length - 1]; cam = nx.x - PX() + 14; feet = nx.y; vy = 0; grounded = true; falls++; dist += 12; shake = 1; flash = 0.25; clean = 0; S.sfx.gutter(); hap('heavy'); msg('Caught a drainpipe! Lost ground.', 'bad'); }
+            const nx = roofs.find(q => q.x > wx - 4) || roofs[roofs.length - 1]; cam = nx.x - PX() + 14; feet = nx.y; vy = 0; grounded = true; falls++; dist += 12; shake = 1; flash = 0.25; clean = 0; S.sfx.gutter(); hap('heavy'); msg('Drainpipe!', 'bad'); }
         } else { const wx = cam + PX(), r = roofAt(wx - 4) || roofAt(wx + 4), ob = obs.find(o => wx + 7 > o.x && wx - 7 < o.x + o.w && Math.abs(feet - (o.y - o.h)) < 2);
           if (ob) feet = ob.y - ob.h; else if (!r) { grounded = false; vy = 0; } else if (feet < r.y - 2) { grounded = false; vy = 0; } else feet = r.y;
           stepAcc += dt * v / 46; if (stepAcc >= 1) { stepAcc = 0; S.sfx.step(); } }
         // chimneys and vents
-        obs.forEach(o => { if (o.hit || o.top) return; const ox = o.x - cam; if (PX() + 8 > ox && PX() - 8 < ox + o.w && feet > o.y - o.h + 3) { o.hit = true; bumps++; dist += 6; stumble = 0.5; shake = 0.8; clean = 0; S.sfx.stumble(); hap('miss'); msg('Clipped a ' + (o.kind === 'chimney' ? 'chimney' : 'vent') + '!', 'bad'); } });
+        obs.forEach(o => { if (o.hit || o.top) return; const ox = o.x - cam; if (PX() + 8 > ox && PX() - 8 < ox + o.w && feet > o.y - o.h + 3) { o.hit = true; bumps++; dist += 6; stumble = 0.5; shake = 0.8; clean = 0; S.sfx.stumble(); hap('miss'); msg(o.kind === 'chimney' ? 'Chimney!' : 'Vent!', 'bad'); } });
         stumble = Math.max(0, stumble - dt); if (stumble <= 0) { clean += dt; dist -= (4.2 + Math.min(1.8, clean * 0.15)) * dt; }
-        if (clean > 4 && msgT <= 0 && !auto) { msg('Gaining on ' + (k.g === 'f' ? 'her' : 'him') + '…', 'good'); }
+        if (clean > 4 && msgT <= 0 && !auto) { msg('Gaining…', 'good'); }
         if (dist <= 0) end('caught'); else if (left <= 0) end('gone');
         nextBolt -= dt; if (nextBolt <= 0) { nextBolt = 5 + rnd() * 5; flash = 1; S.sfx.thunder(false); }
     }
@@ -885,11 +1060,11 @@ async function showResult(res) {
   const shareUrl = location.origin + location.pathname + '?c=' + seed;
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
-  <div class="sgrid"><div><b>${res.stats.left}</b>moves left</div><div><b>${res.stats.cracks}</b>lies cracked</div><div><b>${res.stats.bluffs}</b>bad guesses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>proof</div></div>
-  ${res.stats.confession ? `<p class="rline">${res.stats.sawThrough ? '🎭 You saw through the false confession.' : '🎭 Someone confessed. It wasn\'t true.'}</p>` : ''}${res.stats.body ? `<p class="rline">💀 A second body turned up.</p>` : ''}${res.stats.poly ? `<p class="rline">📈 You strapped ${res.stats.poly} to the lie box.</p>` : ''}${res.stats.safe ? `<p class="rline">${res.stats.safe === 'crack' ? '🔐 You cracked the safe by ear. +' + E.SAFE_BONUS : '🧨 You blew the safe. Lefty sends his regards.'}</p>` : ''}${res.stats.seance ? `<p class="rline">👻 You asked the dead. ${esc(G.V.short)} answered.</p>` : ''}${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 You collared ' + esc(who.short) + ' on the rooftops in ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 You let the uniforms do the running.' : '🏃 ' + esc(who.short) + ' outran you over the rooftops.'}</p>` : ''}
+  <div class="sgrid"><div><b>${res.stats.left}</b>⏱ left</div><div><b>${res.stats.cracks}</b>🔓 lies</div><div><b>${res.stats.bluffs}</b>✗ misses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>🧾 proof</div></div>
+  <div class="chips c">${res.stats.confession ? `<span>🎭 ${res.stats.sawThrough ? '✓' : '✗'}</span>` : ''}${res.stats.body ? `<span>💀 ×2</span>` : ''}${res.stats.poly ? `<span>📈 ×${res.stats.poly}</span>` : ''}${res.stats.safe ? `<span>${res.stats.safe === 'crack' ? '🔐 +' + E.SAFE_BONUS : '🧨'}</span>` : ''}${res.stats.seance ? `<span>👻</span>` : ''}</div>${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 Collared on the rooftops, ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 The uniforms ran the rooftops.' : '🏃 Lost on the rooftops.'}</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
-  <button class="cta" id="bShare" data-now>📤 Share result</button><button class="cta alt" id="bNext">Next case</button><button class="cta alt" id="bRe">Replay this case</button><button class="cta alt" id="bTitle">Title</button></div>`;
+  <button class="cta" id="bShare" data-now>📤 Share</button><button class="cta alt" id="bNext">Next case</button><div class="row2"><button class="cta alt" id="bRe">↺ Replay</button><button class="cta alt" id="bTitle">⌂ Title</button></div></div>`;
   { const rc = R.querySelector('.rcard'); R.scrollTop = Math.max(0, rc.offsetTop - 12); }
   const sc = $('#scoreN'); const t0 = performance.now(); (function up(n) { const k = Math.min(1, (n - t0) / (FAST ? 1 : 900)); sc.textContent = Math.round(res.score * k).toLocaleString(); if (k < 1) requestAnimationFrame(up); })(t0);
   $('#bNext').onclick = () => newGame(1000 + Math.floor(Math.random() * 90000), false);
@@ -904,12 +1079,12 @@ async function share(res, url) {
     try { const blob = await makeCard(res); if (blob) { const f = new File([blob], 'noir-case.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] })) files = [f]; } } catch (e) {}
     if (navigator.share) { await navigator.share(files ? { files, text: txt } : { text: txt }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(txt); toast('Result copied. Paste it anywhere.', 'good'); } catch (e) { prompt('Copy your result:', txt); }
+  try { await navigator.clipboard.writeText(txt); toast('📋 Copied', 'good'); } catch (e) { prompt('Copy your result:', txt); }
 }
 function makeCard(res) {
   return new Promise(resolve => {
     const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
-    const g = x.createLinearGradient(0, 0, 0, 1350); const P = G.st.pal || {}; g.addColorStop(0, P.panel || '#1a0b1a'); g.addColorStop(1, P.bg || '#07060b'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
+    const g = x.createLinearGradient(0, 0, 0, 1350); const P = G.st.pal || {}; g.addColorStop(0, P.panel || '#14100c'); g.addColorStop(1, P.bg || '#07060b'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
     x.fillStyle = G.st.accent + '33'; x.beginPath(); x.arc(860, 220, 260, 0, 7); x.fill();
     x.textAlign = 'center'; x.fillStyle = '#f4ecd8'; x.font = '900 150px Georgia,serif'; x.fillText('NOIR', 540, 190); x.fillStyle = G.st.accent; x.font = 'italic 48px Georgia,serif'; x.fillText('last call', 540, 250);
     x.fillStyle = '#9b93a4'; x.font = '34px "Courier New",monospace'; x.fillText((daily ? 'DAILY CASE' : 'CASE #' + seed) + ' · ' + G.st.name.toUpperCase(), 540, 330);
@@ -930,6 +1105,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, setView, safe: doSafe, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
+window.__noir = { get G() { return G; }, E, newGame, showClue: (c, t) => showClue(c, t), setView, safe: doSafe, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

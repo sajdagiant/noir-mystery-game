@@ -4,150 +4,151 @@
 const D = {};
 
 D.VOICES = {
-  smooth: { o: ['Detective. ', 'Come now. ', 'Ah. ', 'Let me be plain. ', ''], c: [' Do try to keep up.', ' I trust that settles it.', ' Anything else?', '', ''],
-    fail: ['Charming exhibit. Irrelevant, but charming.', 'You keep waving that around. It still means nothing to me.', 'Is that supposed to frighten me? Try again.'],
-    crack: ['Well. You have been busy.', 'Hm. That is... inconvenient.', 'Clever. Annoyingly clever.'],
-    conf: ['Enough games. It was me. I did it.', 'Fine. You win. It was me. Happy?'] },
-  nervous: { o: ['Um— ', 'Look, I— ', 'Okay, okay. ', 'I... ', 'Oh god. '], c: [' Please, I\'ve told you everything.', ' Is it hot in here?', ' Sorry. Sorry.', ' Can I go now?', ''],
-    fail: ['Wh— what\'s that supposed to prove?', 'I don\'t... that isn\'t... why are you showing me that?', 'That\'s not mine. Is it mine? It\'s not mine.'],
-    crack: ['Oh no. Oh no no no.', 'Okay, okay, don\'t— don\'t look at me like that.', 'I knew it. I knew you\'d find it.'],
-    conf: ['Stop! Just stop! It was me! I did it!', 'I can\'t— okay! Yes! It was me!'] },
-  gruff: { o: ['Listen. ', 'Hmph. ', 'Straight up. ', 'Look, pal. ', ''], c: [' That\'s all you\'re getting.', ' Now beat it.', ' Write that down.', '', ''],
-    fail: ['Waste of my time and yours.', 'That a joke? Because I ain\'t laughing.', 'So what? Means squat.'],
-    crack: ['Tch. Fine.', 'Damn. Okay.', 'Alright, alright. You got me there.'],
-    conf: ['Enough. I did it. Cuff me.', 'Yeah. Me. Take me in and shut up about it.'] },
-  theatrical: { o: ['Darling. ', 'Oh, the horror! ', 'Must we? ', 'Ah, ', 'Mon dieu. '], c: [' Tragic, simply tragic!', ' Curtain.', ' I weep, truly.', ' Applause optional.', ''],
-    fail: ['A prop! You bring me a prop and call it evidence!', 'Bravo. Wrong play entirely.', 'How dull. I was expecting a twist.'],
-    crack: ['Oh! The scene turns!', 'You wound me. And you are right. Dreadful.', 'Well. The third act arrives early.'],
-    conf: ['It was ME! Write it in lights! I did it!', 'Take me, Detective! Let the world watch me fall!'] },
-  icy: { o: ['', 'Precisely. ', 'Noted. ', 'Be brief. ', ''], c: [' I won\'t repeat myself.', ' Next question.', ' You\'re wasting time.', '', ''],
-    fail: ['Irrelevant.', 'You have confused me with someone who is rattled.', 'No.'],
-    crack: ['...I see.', 'That is more than I expected you to find.', 'Very well.'],
-    conf: ['Enough. It was me. Write it down.', 'I did it. Satisfied?'] },
-  folksy: { o: ['Well now. ', 'Shoot. ', 'I\'ll tell ya. ', 'Honest to goodness. ', ''], c: [' That\'s the gospel.', ' Rotten business all round.', ' Swear on my mother.', '', ''],
-    fail: ['Son, that\'s got nothing to do with nothing.', 'Now where\'d you dig that up? Don\'t matter.', 'I\'ve seen cows with more sense than that theory.'],
-    crack: ['Aw, hell.', 'Well, shoot. Guess the cat\'s out.', 'Lord. Alright.'],
-    conf: ['I did it! Alright?! It was me!', 'Take me, then. I can\'t stand it. It was me.'] },
-  flirty: { o: ['Mm, detective. ', 'Oh, you\'re direct. ', 'Sweetheart. ', 'Careful. ', ''], c: [' Buy me a drink and I might say more.', ' You have lovely eyes for an interrogator.', ' Don\'t look at me like that.', '', ''],
-    fail: ['Sweet. Wrong, but sweet.', 'Oh, honey. No.', 'Is that your best card? I expected more.'],
-    crack: ['Oh... you really did your homework.', 'Well, aren\'t you something.', 'Alright, you win this hand.'],
-    conf: ['Oh, fine. It was me. Dramatic enough for you?', 'I did it, sweetheart. Now take me somewhere quiet.'] },
-  wry: { o: ['Sure. ', 'Ha. ', 'Oh, absolutely. ', 'Right. ', ''], c: [' Quote me on that.', ' You can\'t make this stuff up.', ' Next?', ' Riveting, I know.', ''],
-    fail: ['Bold. Wrong. But bold.', 'I\'ve been accused with better evidence at parties.', 'Is that the whole case? Because I was promised a case.'],
-    crack: ['Okay. Okay! Point to the detective.', 'Huh. That\'s... annoyingly good.', 'Damn. I liked that lie.'],
-    conf: ['Fine! It was me! Roll the credits!', 'I did it. Don\'t say I never gave you anything.'] },
-  pompous: { o: ['Frankly, ', 'Naturally, ', 'I must say, ', 'Well, ', ''], c: [' I should hope that is clear.', ' I do not say it twice.', ' Write that down, do.', '', ''],
-    fail: ['That is not merely irrelevant; it is insulting.', 'I fail to see the logic. Perhaps you have mislaid it.', 'Is this how they train you people?'],
-    crack: ['Hm. Well. That alters things.', 'How... tiresome of you to notice.', 'One had hoped you would be less thorough.'],
-    conf: ['Very well! It was I! Let it be recorded!', 'I did it. There. Are you quite finished?'] },
+  smooth: { o: ['Detective. ', 'Come now. ', 'Ah. ', 'Plainly: ', ''], c: [' Keep up.', ' Settled.', '', '', ''],
+    fail: ['Charming. Irrelevant.', 'Still means nothing.', 'Try again.'],
+    crack: ['You have been busy.', 'Hm. Inconvenient.', 'Annoyingly clever.'],
+    conf: ['Enough. It was me.', 'Fine. It was me.'] },
+  nervous: { o: ['Um— ', 'I— ', 'Okay. ', 'I... ', 'Oh god. '], c: [' Can I go?', ' Sorry.', '', '', ''],
+    fail: ['Wh— what\'s that prove?', 'Why show me that?', 'That\'s not mine. Is it?'],
+    crack: ['Oh no. Oh no no.', 'Don\'t look at me like that.', 'I knew you\'d find it.'],
+    conf: ['Stop! It was me!', 'Okay! Yes! Me!'] },
+  gruff: { o: ['Listen. ', 'Hmph. ', 'Look, pal. ', '', ''], c: [' Beat it.', ' That\'s all.', '', '', ''],
+    fail: ['Waste of time.', 'I ain\'t laughing.', 'Means squat.'],
+    crack: ['Tch. Fine.', 'Damn. Okay.', 'Alright. You got me.'],
+    conf: ['I did it. Cuff me.', 'Yeah. Me.'] },
+  theatrical: { o: ['Darling. ', 'Oh, the horror! ', 'Must we? ', 'Ah. ', 'Mon dieu. '], c: [' Curtain.', ' Tragic!', '', '', ''],
+    fail: ['A prop! Not evidence!', 'Bravo. Wrong play.', 'How dull.'],
+    crack: ['Oh! The scene turns!', 'You wound me. Rightly.', 'The third act. Early.'],
+    conf: ['It was ME! In lights!', 'Take me, Detective!'] },
+  icy: { o: ['', 'Precisely. ', 'Noted. ', 'Be brief. ', ''], c: [' Next.', '', '', '', ''],
+    fail: ['Irrelevant.', 'I am not rattled.', 'No.'],
+    crack: ['...I see.', 'More than I expected.', 'Very well.'],
+    conf: ['Enough. It was me.', 'I did it. Satisfied?'] },
+  folksy: { o: ['Well now. ', 'Shoot. ', 'I\'ll tell ya. ', 'Honest. ', ''], c: [' Gospel.', ' Swear it.', '', '', ''],
+    fail: ['That ain\'t nothing.', 'Don\'t matter none.', 'Cows got more sense.'],
+    crack: ['Aw, hell.', 'Well, shoot.', 'Lord. Alright.'],
+    conf: ['I did it! It was me!', 'Take me. It was me.'] },
+  flirty: { o: ['Mm, detective. ', 'Sweetheart. ', 'Careful. ', '', ''], c: [' Buy me a drink.', ' Don\'t stare.', '', '', ''],
+    fail: ['Sweet. Wrong.', 'Oh, honey. No.', 'That your best card?'],
+    crack: ['You did your homework.', 'Aren\'t you something.', 'Alright. Your hand.'],
+    conf: ['Fine. It was me.', 'I did it, sweetheart.'] },
+  wry: { o: ['Sure. ', 'Ha. ', 'Right. ', '', ''], c: [' Quote me.', ' Next?', '', '', ''],
+    fail: ['Bold. Wrong.', 'Seen better at parties.', 'That\'s the whole case?'],
+    crack: ['Okay! Point to you.', 'Annoyingly good.', 'Damn. I liked that lie.'],
+    conf: ['Fine! It was me!', 'I did it. Roll credits.'] },
+  pompous: { o: ['Frankly, ', 'Naturally, ', 'Well, ', '', ''], c: [' Write that down.', '', '', '', ''],
+    fail: ['Irrelevant. Insulting.', 'Mislaid your logic?', 'Is this your training?'],
+    crack: ['Hm. That alters things.', 'How tiresome of you.', 'One hoped otherwise.'],
+    conf: ['Very well! It was I!', 'I did it. There.'] },
 };
 
-D.TELLS = ['*A bead of sweat slides down a temple.*', '*Their hand shakes around the glass.*', '*They laugh too loudly, then not at all.*', '*Their eyes keep sliding to the door.*', '*They swallow. It is audible.*', '*Their knuckles whiten on the chair arm.*'];
-D.STINGERS = ['The room goes quiet. Only the rain.', 'Silence. Then the rain again.', 'A clock somewhere. Too loud.'];
+D.TELLS = ['sweat', 'shake', 'glance', 'swallow', 'glance', 'sweat'];
+D.STINGERS = ['Only the rain.', 'Silence. Rain.', 'A clock. Too loud.'];
+D.MICON = { money: '💰', love: '💔', blackmail: '✉️', revenge: '🗡️', coverup: '🤐' };
 
 D.MOTIVES = {
-  money: { label: 'Money', admit: ['{v} and I had a financial arrangement. The arithmetic stopped favoring me.', 'I owed {v} money. A lot of it. Half the town knew.', '{v} held my paper. Dead men don\'t collect, which, I admit, is convenient.'],
-    deny: null, gossip: ['{name} owes {v} a small fortune. Everybody knows.', 'Ask {name} about the debt. Ask nicely.', '{name} was drowning in {v}\'s paper. Gasping, really.'],
-    doc: 'a ledger and an amended will: {name} owed {v} a fortune, and the amendment would have ruined {name} for good.',
-    reveal: ['{v} was calling in every note. I\'d have lost everything. I only wanted to talk, and then {weapon} was in my hand.', 'Debt makes a person creative. {v} was worth more to me dead than owed.'] },
-  love: { label: 'Love', admit: ['{v} and I... we were involved. It ended last week. Badly.', 'I loved {v}. Past tense, if you must write it down.', '{v} broke it off in front of everyone, like it was nothing.'],
-    gossip: ['{name} and {v} had a thing. It ended in a scene.', 'I\'d look at {name}. Broken hearts bruise like peaches.', '{name} loved {v}. {v} did not love back. Not enough.'],
-    doc: 'a bundle of letters: {name} and {v} were lovers, and {v} had just ended it, cruelly and in public.',
-    reveal: ['{v} ended it in front of everyone, like I was nothing. I would have given {v} the world. Instead I gave {v} {weapon}.', 'I only wanted {v} to look at me the way they used to. {v} laughed. So.'] },
-  blackmail: { label: 'Blackmail', admit: ['{v} had something on me. I paid. Don\'t make me say what.', 'Every month an envelope. Every month a smile. That was {v}\'s idea of friendship.', 'I won\'t cry for {v}. I\'ve paid for the privilege of not crying.'],
-    gossip: ['{v} had something on {name}. {name} paid, monthly, in cash.', '{name} was being squeezed by {v}. You could see it in the shoulders.', 'Ask {name} what {v} knew. Watch their face when you do.'],
-    doc: 'a note in {v}\'s hand: {name}\'s name beside a payment schedule. {v} was blackmailing {name}.',
-    reveal: ['Every month another envelope. I couldn\'t breathe. {v} thought I\'d pay forever. I stopped.', '{v} wanted double this month. I brought {weapon} instead.'] },
-  revenge: { label: 'Revenge', admit: ['{v} ruined me, years ago. I won\'t pretend I mourn.', '{v} destroyed my name once. I\'ve had plenty of time to think about it.', 'You want to know if I hated {v}? Every morning for ten years.'],
-    gossip: ['{name} never forgave {v} for what happened years back.', '{v} ruined {name} once. {name} has a long memory.', 'There\'s an old wound between {name} and {v}. It never closed.'],
-    doc: 'a yellowed clipping: {v}\'s dirty deal destroyed {name}\'s career and good name years ago.',
-    reveal: ['Twenty years I waited. Tonight {v} laughed about it. So I stopped waiting.', '{v} ruined everything I was. I only returned the favor.'] },
-  coverup: { label: 'Cover-up', admit: ['{v} was threatening to go to the authorities about a... misunderstanding.', '{v} knew something I\'d spent years burying. Yes, it worried me.', 'Let\'s say {v} was careless with other people\'s secrets. Mine included.'],
-    gossip: ['{v} was about to expose {name}. {name} knew it.', '{name} had a secret and {v} had a loose tongue. You do the math.', '{v} told {name} the authorities would hear everything. Monday.'],
-    doc: 'a half-written letter: {v} was about to expose {name}\'s fraud to the authorities.',
-    reveal: ['{v} was going to talk. One phone call and it all comes apart. So I made sure {v} never made it.', 'It was the secret or {v}. I chose the secret.'] },
+  money: { label: 'Money', admit: ['{v} held my debts. Big ones.', 'I owed {v}. Everyone knew.', '{v} held my paper. Dead men don\'t collect.'],
+    deny: null, gossip: ['{name} owed {v} a fortune.', 'Ask {name} about the debt.', '{name} was drowning in {v}\'s paper.'],
+    doc: 'A new will. {name} owed {v} a fortune.',
+    reveal: ['{v} called in my debts. Then I swung {weapon}.', 'Dead, {v} was worth more than owed.'] },
+  love: { label: 'Love', admit: ['{v} and I were lovers. It ended badly.', 'I loved {v}. Past tense.', '{v} dumped me in front of everyone.'],
+    gossip: ['{name} and {v}. It ended ugly.', 'Look at {name}. Broken hearts bruise.', '{name} loved {v}. Not returned.'],
+    doc: 'Love letters. {name} and {v}. {v} ended it.',
+    reveal: ['{v} laughed at me. So: {weapon}.', 'I\'d have given {v} the world. Instead, {weapon}.'] },
+  blackmail: { label: 'Blackmail', admit: ['{v} had dirt on me. I paid.', 'Every month, an envelope to {v}.', 'I paid {v}. Monthly. In cash.'],
+    gossip: ['{v} was squeezing {name}. Monthly.', '{v} had dirt on {name}.', 'Ask {name} what {v} knew.'],
+    doc: '{v}\'s ledger. {name}, paying blackmail monthly.',
+    reveal: ['Another envelope. I couldn\'t breathe. I stopped.', '{v} wanted double. I brought {weapon}.'] },
+  revenge: { label: 'Revenge', admit: ['{v} ruined me, years ago.', '{v} destroyed my name once.', 'Hated {v}? Every morning, ten years.'],
+    gossip: ['{name} never forgave {v}.', '{v} ruined {name} once.', '{name} has a long memory.'],
+    doc: 'Old clipping. {v} ruined {name}\'s career.',
+    reveal: ['Twenty years. Tonight {v} laughed. I stopped waiting.', '{v} ruined me. I returned the favor.'] },
+  coverup: { label: 'Cover-up', admit: ['{v} threatened to talk. About me.', '{v} knew what I\'d buried.', '{v} was careless with my secrets.'],
+    gossip: ['{v} was about to expose {name}.', '{name} had a secret. {v} had a mouth.', '{v} meant to tell the cops about {name}.'],
+    doc: 'Half a letter. {v}, exposing {name}\'s fraud.',
+    reveal: ['{v} was going to talk. I made sure not.', 'It was the secret or {v}.'] },
 };
-D.DENY = ['{v} and I had our differences. Nothing worth killing over.', 'We got along. As well as anyone got along with {v}.', 'I respected {v}. Feared, a little. From the outside they look the same.'];
+D.DENY = ['{v} and I got along fine.', 'We got along. Mostly.', 'I respected {v}. Feared, a little.'];
 
 D.CLAIM = [
-  'I was in the {place} from ten o\'clock until the shouting started. Ask anyone.',
-  'The {place}. All evening. I never left it, not for a minute.',
-  'The {place}, where I always am. I was nowhere near the {scene}.',
-  'I spent the whole night in the {place}. Dull as dishwater, and I\'d happily have kept it that way.',
+  'The {place}, ten till the screaming.',
+  'The {place}. All night. Never left.',
+  'The {place}. Nowhere near the {scene}.',
+  'The {place}, all night. Dull as dishwater.',
 ];
-D.VOUCH = [' {s} even stopped by and saw me there. Ask.', ' And {s} walked past around ten-forty. Saw me plain as day.', ' {s} will tell you. Saw me there, on the dot.'];
+D.VOUCH = [' {s} saw me there.', ' Ask {s}. Saw me at 10:40.', ' {s} saw me. On the dot.'];
 D.ABSENT = [
-  { t: 'Sign-out slip', x: 'A slip pinned inside the {place}: “{who} — stepped out {out}, back 11:00.” Initialed by {staff}.' },
-  { t: '{staff}\'s log', x: '{staff} swears nobody sat in the {place} between ten and eleven. “I checked twice. {who}\'s seat stayed cold.”' },
-  { t: 'Cold ashtray', x: 'A flat drink and a stale ashtray in the {place}, {who}\'s by the initials. Nobody has touched either in an hour. Whoever sat here left long before the murder.' },
-  { t: 'Closed-door note', x: 'A note taped inside the {place}: “Closed 10:15 for cleaning.” The cleaner never saw {who} come in, or go out.' },
+  { t: 'Sign-out slip', x: '“{who}: out {out}, back 11:00.” {staff}', tool: 'tear', i: '🎟️' },
+  { t: '{staff}\'s log', x: '{staff}: “{who}\'s seat stayed cold.”', tool: 'uv', i: '📒' },
+  { t: 'Cold ashtray', x: '{who}\'s ashtray. Cold for an hour.', tool: 'match', i: '🚬' },
+  { t: 'Closed-door note', x: '“Closed 10:15.” No {who} inside.', tool: 'tear', i: '🪧' },
 ];
-D.PAIRSECRET = ['We\'ve been seeing each other for months. Nobody knew.', 'We were skimming the take together. For months.', 'We were planning to walk out on all of this tonight. Together.', 'We were burning a letter we both wrote. Call it a confession, if you like.'];
+D.PAIRSECRET = ['We\'re lovers. Secretly.', 'We were skimming the take.', 'We were running away tonight.', 'We were burning a letter.'];
 D.PAIRCRACK = [
-  'Fine. I wasn\'t in the {place}. I was in {spot} with {p2}. {secret} Ask {p2}. The door sticks from inside. Nobody leaves without the other knowing.',
-  'All right! {Spot}. With {p2}, the whole time. {secret} That\'s the truth, and it costs me plenty.',
-  'I lied. I was never in the {place}. {Spot}, with {p2}. {secret} We were there together until the screaming started.',
+  'Fine. Not the {place}. {Spot}, with {p2}. {secret}',
+  'All right! {Spot}. With {p2}, all night. {secret}',
+  'I lied. {Spot}, with {p2}. {secret}',
 ];
 D.PAIRCONFIRM = [
-  '...{p1} talked? Then there\'s no point. {Spot}, the two of us, {since}. {secret} Neither of us left, not even for a second.',
-  'Yes. All right. {p1} and I, in {spot}. {secret} I\'d have taken it to my grave if you hadn\'t pushed.',
-  'It\'s true. {p1} was with me in {spot}, start to finish. {secret} Now please, let it be.',
+  '{p1} talked? Fine. {Spot}, together. {secret}',
+  'Yes. {p1} and me, {spot}. {secret}',
+  'True. {p1} was with me. {secret}',
 ];
 D.CALLS = {
-  affair: 'I was in {callSpot}, on the line with someone I shouldn\'t be calling. The operator logged it: ten thirty-eight, twelve minutes.',
-  bookie: 'I was in {callSpot}, begging a bookie for more time. It\'s logged. Ten thirty-eight, twelve minutes of pure humiliation.',
-  rival: 'I was in {callSpot}, selling what I know to a rival outfit. Ten thirty-eight, twelve minutes. It\'s on the log. Go on, hate me.',
-  job: 'I was in {callSpot}, interviewing for another job, long distance. Ten thirty-eight, twelve minutes. Check the exchange.',
+  affair: 'On the phone. Someone I shouldn\'t call. Logged 10:38.',
+  bookie: 'On the phone, begging my bookie. Logged 10:38.',
+  rival: 'On the phone, selling secrets. Logged 10:38.',
+  job: 'On the phone, a job interview. Logged 10:38.',
 };
-D.SOLOCRACK = '{call} And {k}? I never saw {k} anywhere near the {kplace}. Anyone who says otherwise is lying. I never left {callSpot}, not once.';
+D.SOLOCRACK = '{call} And {k}? Never near the {kplace}.';
 D.KCRACK = [
-  'All right. I wasn\'t in the {place}. I stepped out through the {exit}. Air. Alone. Nobody saw me, and I\'m not sorry. That doesn\'t make me a killer.',
-  'Fine. I left the {place} around half past ten and went out the {exit}. By myself. Nobody can vouch for me, and that\'s hardly a crime.',
-  'I needed air. I took the {exit}, alone. No witnesses. I know how that sounds. Doesn\'t mean I killed anyone.',
+  'Fine. Not the {place}. Out the {exit}. Alone.',
+  'I left at 10:30. Out the {exit}. Alone.',
+  'I needed air. The {exit}. No witnesses.',
 ];
 D.SAW = [
-  'Around {when}, the {exit} banged. Someone went out in a hurry, and the whole corridor smelled of {trait}.',
-  'I heard the {exit} slam, {when} or so. Footsteps, quick and wet. Whoever it was, I caught {trait} in the air.',
-  'Now that you ask: the {exit}. Someone slipped out of it near {when}. I remember the smell. {trait}, unmistakable.',
+  'At {when}, the {exit} banged. Reeked of {trait}.',
+  'The {exit} slammed, {when}. Then {trait}.',
+  'Someone slipped out the {exit}, {when}. Reeked of {trait}.',
 ];
 D.CONF = [
-  'I hit {v} with {fake}. Hard. Then I left. That\'s all there is.',
-  'It was {fake}. One swing. I don\'t remember the rest.',
-  'I grabbed {fake} off the shelf and I swung. That\'s the whole story.',
+  'I hit {v} with {fake}. Then I left.',
+  'It was {fake}. One swing.',
+  'I grabbed {fake}. I swung.',
 ];
 D.CONFBREAK = [
-  'Fine! I never touched {v}. I\'d sooner hang than explain where I really was tonight.',
-  'All right, all right. It\'s a lie. A confession is quicker than the truth, and the truth costs me everything.',
-  'I never did it. Everyone needed somebody to blame, so I volunteered. It bought me a quiet night. Stupid.',
+  'Fine! I never touched {v}.',
+  'It\'s a lie. The truth costs more.',
+  'I never did it. I volunteered.',
 ];
-D.STAGECLUE = 'Under a cushion in the {place}: {v}\'s spare reading glasses, and {staff}\'s note: “Took {v} a fresh drink at ten past ten. Knocked. No answer. Lights on.” So {v} was already dead by {Treal}. The {piece} that says {T}? Its crown is pulled out, the hands scratched. Somebody set the time.';
+D.STAGECLUE = '{staff}\'s note: “No answer at 10:10.” Dead by {Treal}. The {piece}\'s crown is pulled.';
 D.KCALL = [
-  'Fine, I wasn\'t in the {place}. I was in {callSpot}, on the telephone. 10:38 to 10:50, and the exchange logged every second. Unless {v} was killed by telephone, I\'m in the clear.',
-  'Fine. Not the {place}. I was in {callSpot}, on a long-distance call, 10:38 to 10:50. Logged. Look at the time on the {piece}, then look at me, and apologise.',
+  'Fine. Not the {place}. On the phone, 10:38 to 10:50. Logged.',
+  'A phone call. 10:38 to 10:50. Check the {piece}.',
 ];
-D.KCALLQUOTE = 'I was on a logged call in {callSpot}, 10:38 to 10:50. The {piece} says when it happened. Do the arithmetic.';
+D.KCALLQUOTE = 'On a logged call, 10:38 to 10:50. Check the {piece}.';
 D.KSTAGE = [
-  '...The {piece}. Of course you looked at the {piece}. Twenty minutes forward, that\'s all it took. A phone call is a lovely alibi once you\'ve moved the murder to fit it.',
-  'Ten past ten. You found the note. I turned the hands myself and then I picked up the phone and talked about the weather for twelve minutes. Clever, wasn\'t it? Not clever enough.',
+  'The {piece}. Twenty minutes forward. That\'s all it took.',
+  'I turned the hands. Then I made the call.',
 ];
 D.LSTAGE = [
-  'Ten past ten? Then read {staff}\'s slip again. I signed out of the {place} at 10:28. I was sitting right there while {v} died. I only went out the {exit} after, to breathe.',
-  'If {v} was dead by ten past, I\'m clear. I didn\'t leave the {place} until 10:28. It\'s on the slip. I looked guilty because I was stupid, not because I was a killer.',
+  'Dead by ten past? I signed out at 10:28.',
+  'I was in the {place} till 10:28. It\'s on the slip.',
 ];
 D.FRAMED = [
-  'That\'s mine. It went missing hours ago. Somebody is dressing me up for the noose. Smell it, Detective. I wear {trait}. That stinks of {other}.',
-  'Mine? Yes. Stolen from my coat before nine. Whoever wore it after didn\'t smell like me. That\'s {other}, not {trait}. Somebody wants me hanged.',
+  'Mine. Stolen hours ago. Smell it. {other}, not {trait}.',
+  'Stolen before nine. I wear {trait}. That\'s {other}.',
 ];
 D.SAWL = [
-  'When I went out the {exit} at half past ten, the bins were knocked over and the air stank of {trait}. Somebody\'d been out there before me, in a hurry.',
-  'The {exit} was already ajar when I got there, 10:28 or so. Wet footprints going out, none coming back. And that smell. {trait}.',
+  'Out the {exit} at 10:28. Bins knocked over. Reeked of {trait}.',
+  'The {exit} was ajar at 10:28. Reeked of {trait}.',
 ];
-D.PRESSALREADY = ['You already broke that one, Detective. Keep up.', 'That story\'s dead. Find a new one.'];
-D.PRESSNONE = ['Show me what that has to do with anything.', 'I\'ve nothing to add to that.'];
+D.PRESSALREADY = ['Already broke that one.', 'That story\'s dead.'];
+D.PRESSNONE = ['So what?', 'Nothing to add.'];
 
 /* ---------- settings & casts ---------- */
 D.SETTINGS = [
-{ id: 'club', pal: {"bg": "#14061c", "panel": "#22102f", "line": "#43225a", "fg": "#fbf1ff", "mut": "#cdb7dc", "acc": "#ff3d8b", "acc2": "#39e0ff", "gold": "#ffcf5c"}, piece: 'wristwatch', name: 'The Velvet Larkspur', tag: 'a smoky jazz club on the wrong side of the river', accent: '#ff3d7f', sky: ['#1a0b1a', '#0b0710'],
+{ id: 'club', pal: {"bg": "#0a0a0b", "panel": "#16130f", "line": "#362b20", "fg": "#f1e6d0", "mut": "#b9a98f", "acc": "#e0a040", "acc2": "#4e8c86", "gold": "#c8a45a", "red": "#9e2b25"}, piece: 'wristwatch', name: 'The Velvet Larkspur', tag: 'a smoky jazz club on the wrong side of the river', accent: '#e0a040', sky: ['#14100c', '#08070a'],
   victim: { first: 'Marcus', short: 'Lucky', full: 'Marcus “Lucky” Delano', title: 'club owner' },
   weapon: 'a bronze statuette', fake: 'a champagne bottle',
   scene: { name: 'Back Office', icon: '🗄️' },
@@ -155,10 +156,10 @@ D.SETTINGS = [
   exit: { name: 'Alley Door', icon: '🚪' },
   spots: ['the walk-in cooler', 'the rooftop stairwell', 'the prop closet'], callSpot: 'the pay phone in the hall',
   staff: { name: 'Pops', role: 'the doorman' },
-  open: 'Rain on the glass. A saxophone somewhere, choking on its last note. Marcus “Lucky” Delano, owner of the Velvet Larkspur, is face-down on his own carpet with a bronze statuette beside his head. Four people had keys to the Back Office tonight. All four are about to lie to you.',
-  body: 'Lucky is on the carpet, one hand curled around a cigar he\'ll never light. The bronze statuette lies beside him, wiped but not wiped well. His wristwatch is smashed, stopped at {T}. Two glasses on the desk. He poured for his killer, so he knew them.',
-  dead2: 'Pops the doorman is slumped by the {exit}, struck from behind. Minutes ago. Alive when you read his log.',
-  epi: 'By dawn the Larkspur\'s neon was dark for good. The jazz moved on, the way it always does.',
+  open: 'Rain on the glass. A sax chokes mid-note. Lucky Delano, face-down. Four keys. Four liars.',
+  body: 'Watch smashed at {T}. Two glasses. He knew his killer.',
+  dead2: 'Pops, the doorman. Struck from behind. Minutes ago.',
+  epi: 'By dawn the Larkspur went dark for good.',
   cast: [
    { id: 'viv', anon: "a silk evening glove", crack: "Damn it. I liked that lie. It fit me.", wrongAcc: "Darling, I sing about heartbreak. I don't do the stabbing.", caughtLine: "Write it pretty, Detective. I'd hate to be remembered badly.", name: 'Vivian Crane', short: 'Vivian', g: 'f', voice: 'flirty', role: 'Headline singer', look: 'Smoke in her voice, trouble in her eyes.', trait: 'lavender perfume',
      item: 'a silk evening glove stitched V.C., stiff with blood', itemShort: 'Bloody glove', ini: 'V.C.',
@@ -181,7 +182,7 @@ D.SETTINGS = [
      beats: ['*She twists a coat-check ticket until it tears.*', '*She glances at the door, then at you, then the door.*', '*She laughs at nothing. It dies fast.*', '*She hugs her elbows.*'],
      quips: ['I just hang coats. I don\'t hear anything. Okay, I hear everything.', 'Please don\'t write that down. Okay, write it down.', 'Mr. Delano was kind to me. Mostly.'] },
   ] },
-{ id: 'manor', pal: {"bg": "#0a1411", "panel": "#14231e", "line": "#2f4a40", "fg": "#f5eedc", "mut": "#c1cab4", "acc": "#e8b54d", "acc2": "#d0483f", "gold": "#f0c96a"}, piece: 'mantel clock', name: 'Blackwood Manor', tag: 'a rain-lashed estate with too many locked doors', accent: '#c9a24a', sky: ['#0e1520', '#070a10'],
+{ id: 'manor', pal: {"bg": "#0a1210", "panel": "#13201b", "line": "#2c4339", "fg": "#efe7d4", "mut": "#b7bfa9", "acc": "#c9a24a", "acc2": "#9e2b25", "gold": "#d8b766", "red": "#9e2b25"}, piece: 'mantel clock', name: 'Blackwood Manor', tag: 'a rain-lashed estate with too many locked doors', accent: '#c9a24a', sky: ['#0e1614', '#060a09'],
   victim: { first: 'Alistair', short: 'Alistair', full: 'Lord Alistair Blackwood', title: 'master of the house' },
   weapon: 'a fireplace poker', fake: 'a candlestick',
   scene: { name: 'Study', icon: '📚' },
@@ -189,10 +190,10 @@ D.SETTINGS = [
   exit: { name: 'Garden Gate', icon: '🌧️' },
   spots: ['the old nursery', 'the boathouse', 'the gun room'], callSpot: 'the telephone alcove under the stairs',
   staff: { name: 'Hobbs', role: 'the gardener' },
-  open: 'Thunder over Blackwood Manor. Lord Alistair is slumped by a dead fire, a poker beside him still warm from the grate. The doors are locked. The phone lines are down. The family is in the drawing room, pretending to grieve. One of them isn\'t pretending to do anything else.',
-  body: 'Alistair lies by the hearth, one hand reaching for the bell-pull. The fireplace poker is on the rug, wiped but not wiped well. The mantel clock was knocked off its shelf and stopped at {T}. Two brandy glasses on the desk. He poured for his killer, so he knew them.',
-  dead2: 'Hobbs the gardener lies in the mud by the {exit}, struck from behind. Minutes ago. Alive when you read his log.',
-  epi: 'By dawn the rain had stopped. Blackwood Manor stood exactly as it always had: beautiful, and rotten to the beams.',
+  open: 'Thunder. Lord Alistair, dead by a cold fire. Doors locked. Lines cut. Four grieving liars.',
+  body: 'Mantel clock stopped at {T}. Two brandies. He knew his killer.',
+  dead2: 'Hobbs, the gardener. Face-down in the mud. Minutes ago.',
+  epi: 'By dawn the rain stopped. The rot didn\'t.',
   cast: [
    { id: 'imo', anon: "a black lace glove, stained dark", crack: "How tedious. I'll have to think of a better one.", wrongAcc: "Thirty years of marriage and you think I'd be this careless?", caughtLine: "Have my coat brought round. I won't be crying in front of you.", name: 'Lady Imogen Blackwood', short: 'Imogen', g: 'f', voice: 'icy', role: 'The widow', look: 'Grief you could chill wine with.', trait: 'lily-of-the-valley',
      item: 'a black lace glove stitched I.B., stained dark with blood', itemShort: 'Bloody lace glove', ini: 'I.B.',
@@ -215,7 +216,7 @@ D.SETTINGS = [
      beats: ['*He spins a coin across his knuckles, then loses it, then pretends he meant to.*', '*He swigs from a flask, offers it, retracts it.*', '*He slouches until he\'s almost horizontal.*', '*He smirks at the portrait of his uncle.*'],
      quips: ['Uncle left me his name and nothing else. Frankly I\'d have taken the money.', 'If I\'d wanted him dead, I\'d have been more convincing about it.', 'I\'m the obvious suspect. That\'s exactly why I\'m too lazy to be the killer.'] },
   ] },
-{ id: 'train', pal: {"bg": "#070e1f", "panel": "#111c35", "line": "#2a3c63", "fg": "#eef4ff", "mut": "#adbfdc", "acc": "#3fd6cf", "acc2": "#e7ad4f", "gold": "#f2c36b"}, piece: 'pocket watch', name: 'The Midnight Meridian', tag: 'a night train rattling through nowhere', accent: '#4cc9f0', sky: ['#0a1420', '#05080f'],
+{ id: 'train', pal: {"bg": "#080c14", "panel": "#111a26", "line": "#29384a", "fg": "#ebeef0", "mut": "#a8b4bf", "acc": "#6fb0a6", "acc2": "#e0a040", "gold": "#d4b06a", "red": "#a33a2e"}, piece: 'pocket watch', name: 'The Midnight Meridian', tag: 'a night train rattling through nowhere', accent: '#6fb0a6', sky: ['#0c1420', '#05080f'],
   victim: { first: 'Viktor', short: 'Viktor', full: 'Count Viktor Halloran', title: 'railway magnate' },
   weapon: 'a silver letter opener', fake: 'a brass lamp',
   scene: { name: 'Private Cabin', icon: '🛏️' },
@@ -223,10 +224,10 @@ D.SETTINGS = [
   exit: { name: 'Baggage Car', icon: '🧳' },
   spots: ['a sleeper berth at the end of the car', 'the luggage nook behind the stairs', 'the dark of the vestibule'], callSpot: 'the radio-telephone in the vestibule',
   staff: { name: 'Eli', role: 'the porter' },
-  open: 'The Midnight Meridian is two hours from the next station and nobody is getting off. Count Viktor Halloran is dead in his private cabin with a silver letter opener in him. The windows are black. The wheels keep their rhythm. Somewhere on this train, a killer keeps time with them.',
-  body: 'The Count is slumped in his armchair. The silver letter opener is gone from his desk, then back on it, wiped. His pocket watch lies shattered on the floor, stopped at {T}. Two cognac glasses. He poured for his killer, so he knew them.',
-  dead2: 'Eli the porter lies behind the trunks in the {exit}, struck from behind. Minutes ago. Alive when you read his log.',
-  epi: 'By dawn the Meridian pulled into a grey little station. Somebody left in handcuffs. Nobody on board slept.',
+  open: 'Two hours to the next station. Count Viktor, a letter opener in him. Four passengers. One killer.',
+  body: 'Pocket watch shattered at {T}. Two cognacs. He knew his killer.',
+  dead2: 'Eli, the porter. Behind the trunks. Minutes ago.',
+  epi: 'Grey station at dawn. One passenger in cuffs.',
   cast: [
    { id: 'del', anon: "a velvet opera glove pinned with a gardenia", crack: "A wrong note! In my own aria!", wrongAcc: "You have cast me in the wrong role, darling. Unforgivable.", caughtLine: "Let them say Delphine gave her last great performance tonight.", name: 'Madame Delphine Fontaine', short: 'Delphine', g: 'f', voice: 'theatrical', role: 'Opera diva', look: 'Every sentence is an aria.', trait: 'gardenia',
      item: 'a velvet opera glove pinned with a gardenia, initialed D.F. in blood', itemShort: 'Bloody opera glove', ini: 'D.F.',
@@ -249,7 +250,7 @@ D.SETTINGS = [
      beats: ['*He rolls a cigar between thumb and finger, unlit.*', '*He smiles like a man who owns the exit.*', '*He straightens a cuff worth more than your car.*', '*He glances at your coat like he\'s pricing it.*'],
      quips: ['Everything\'s for sale, Detective. Including alibis. Not mine, mind.', 'I trade in weapons. Murder is amateur hour.', 'Viktor owed me. Dead men don\'t pay.'] },
   ] },
-{ id: 'lab', pal: {"bg": "#0a161b", "panel": "#13252c", "line": "#2d4a55", "fg": "#f0fbff", "mut": "#a9c7d0", "acc": "#72e6ff", "acc2": "#ff7d40", "gold": "#ffd36e"}, piece: 'wall clock', name: 'Halcyon Research Station', tag: 'a polar lab where the storm has cut every road and radio', accent: '#7ee0ff', sky: ['#0c1822', '#060b11'],
+{ id: 'lab', pal: {"bg": "#091315", "panel": "#112125", "line": "#28434a", "fg": "#eef4f2", "mut": "#a6bfbe", "acc": "#8cc4bb", "acc2": "#e08a3c", "gold": "#d9b56a", "red": "#b0402e"}, piece: 'wall clock', name: 'Halcyon Research Station', tag: 'a polar lab where the storm has cut every road and radio', accent: '#8cc4bb', sky: ['#0c1a1e', '#060c0e'],
   victim: { first: 'Elena', short: 'Dr. Marsh', full: 'Dr. Elena Marsh', title: 'station director' },
   weapon: 'a heavy steel torque wrench', fake: 'a fire axe',
   scene: { name: 'Director\'s Office', icon: '🧪' },
@@ -257,10 +258,10 @@ D.SETTINGS = [
   exit: { name: 'Generator Room', icon: '⚡' },
   spots: ['the instrument shed', 'the observation dome', 'the sauna cabin'], callSpot: 'the satellite phone in the comms nook',
   staff: { name: 'Pavel', role: 'the technician' },
-  open: 'A blizzard has buried Halcyon Station. No roads. No radio. No helicopter until it clears. Dr. Elena Marsh, the director, is dead on her office floor with a steel torque wrench beside her. Four scientists, one storm, and a killer who can\'t leave. Neither can you.',
-  body: 'Dr. Marsh lies by her desk, a data tablet cracked beneath her. The torque wrench is back on the tool shelf, wiped but not wiped well. The wall clock was knocked down and stopped at {T}. Two mugs of coffee. She poured for her killer, so she knew them.',
-  dead2: 'Pavel the technician is crumpled by the {exit}, struck from behind. Minutes ago. Alive when you read his log.',
-  epi: 'By dawn the storm broke. The helicopter came. One person boarded in handcuffs, and the rest stared at the ice a long time.',
+  open: 'Blizzard. No roads. No radio. Dr. Marsh, dead by a torque wrench. Nobody leaves.',
+  body: 'Wall clock stopped at {T}. Two coffees. She knew her killer.',
+  dead2: 'Pavel, the technician. Crumpled by the door. Minutes ago.',
+  epi: 'The storm broke. One scientist flew out in cuffs.',
   cast: [
    { id: 'the', anon: "a frost-stiff parka glove, red at the cuff", crack: "Error bars. I forgot the error bars.", wrongAcc: "I can't even win an argument with a thermostat!", caughtLine: "I want it on record that I was going to publish this year.", name: 'Dr. Theo Kessler', short: 'Theo', g: 'm', voice: 'nervous', role: 'Glaciologist', look: 'Studies ice. Terrible at keeping his cool.', trait: 'burnt coffee',
      item: 'a frost-stiff parka glove stitched T.K., red at the cuff', itemShort: 'Bloody parka glove', ini: 'T.K.',
@@ -283,7 +284,7 @@ D.SETTINGS = [
      beats: ['*She uncaps a fountain pen and does not write anything.*', '*She consults a clipboard like a hymnal.*', '*She regards the room\'s budget with visible pain.*', '*She stacks two forms. Of course she does.*'],
      quips: ['I audit people who lie for a living. You\'re a rank amateur.', 'Dr. Marsh was twelve thousand over budget and sixty thousand over her head.', 'Everything leaves a paper trail. Even murder. Especially murder.'] },
   ] },
-{ id: 'studio', pal: {"bg":"#160f07","panel":"#261b0f","line":"#50391f","fg":"#fff6e6","mut":"#d6c4a6","acc":"#ffb02e","acc2":"#ff4b3a","gold":"#ffd27a"}, piece: 'stage clock', name: 'Studio Nine', tag: 'a Hollywood soundstage after the cameras stop', accent: '#ffb02e', sky: ['#1e1208', '#0b0704'],
+{ id: 'studio', pal: {"bg": "#100d0a", "panel": "#1d1813", "line": "#43382b", "fg": "#f3ead8", "mut": "#c4b79f", "acc": "#c23a2f", "acc2": "#d8c39a", "gold": "#c9a45c", "red": "#c23a2f"}, piece: 'stage clock', name: 'Studio Nine', tag: 'a Hollywood soundstage after the cameras stop', accent: '#c23a2f', sky: ['#1a140e', '#0a0806'],
   victim: { first: 'Rex', short: 'Rex', full: 'Rex Maddox', title: 'tyrant director' },
   weapon: 'a cast-iron stage weight', fake: 'a prop revolver',
   scene: { name: 'Director\'s Trailer', icon: '🎬' },
@@ -291,10 +292,10 @@ D.SETTINGS = [
   exit: { name: 'Loading Dock', icon: '🚚' },
   spots: ['the back seat of the prop limousine', 'the fake saloon on Stage Two', 'the wardrobe cage'], callSpot: 'the studio switchboard booth',
   staff: { name: 'Gus', role: 'the night watchman' },
-  open: 'Midnight on Studio Nine. The klieg lights are still warm. Rex Maddox, the most hated director in pictures, is dead in his own trailer with a stage weight beside him, and the stage clock frozen like a bad cut. Four people wanted his job, his money, or his head. Tonight somebody took all three. Roll camera.',
-  body: 'Rex is sprawled across his script, a red pencil still in his fist. The stage weight lies by the door, wiped but not wiped well. The stage clock on the wall stopped at {T}. Two coffee cups, one with lipstick-free rim. He poured for his killer, so he knew them.',
-  dead2: 'Gus the night watchman is slumped by the {exit}, struck from behind. Minutes ago. Alive when you read his log.',
-  epi: 'By dawn the trades had the story. Studio Nine was dark for a week. Then they made a picture about it, and it flopped.',
+  open: 'Midnight, Studio Nine. Rex Maddox, dead in his trailer. Four people wanted his head.',
+  body: 'Stage clock stopped at {T}. Two coffees. He knew his killer.',
+  dead2: 'Gus, the watchman. Struck from behind. Minutes ago.',
+  epi: 'They made a picture about it. It flopped.',
   cast: [
    { id: 'gin', anon: "a satin glove, smeared with blood", crack: "Cut! Cut. That take was terrible.", wrongAcc: "Honey, I've played killers. I know how it's done, and it isn't like this.", caughtLine: "Get my good side for the newsreels.", name: 'Ginger LaRue', short: 'Ginger', g: 'f', voice: 'flirty', role: 'Starlet', look: 'Ten years an ingénue. Done waiting.', trait: 'cold cream and Chanel',
      item: 'a satin glove stitched G.L., smeared with blood', itemShort: 'Bloody satin glove', ini: 'G.L.',

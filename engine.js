@@ -37,8 +37,8 @@ function newCase(seed) {
   const wrapStatic = (p, body) => { const v = D.VOICES[p.voice]; return norm((r() < 0.7 ? pick(v.o) : '') + body + (r() < 0.5 ? pick(v.c) : '')); };
 
   const clues = {};
-  const mkClue = (id, title, text, icon, kind, loc) => { clues[id] = { id, title, text, icon, kind: kind || 'clue', loc: loc || null }; };
-  mkClue('c_scene', 'The Body', fill(st.body, { T: fmt(T) }), '🩸', 'clue', 'scene');
+  const mkClue = (id, title, text, icon, kind, loc, tool) => { clues[id] = { id, title, text, icon, kind: kind || 'clue', loc: loc || null, tool: tool || null }; };
+  mkClue('c_scene', 'The Body', fill(st.body, { T: fmt(T) }), '🩸', 'clue', 'scene', 'dust');
   // absence clues at each claimed room (P2's room hides something else)
   const ab = shuffle(D.ABSENT.slice(1)); let abi = 0;
   const outTime = { K: variant === 'staged' ? '10:00' : '10:25', P1: variant === 'staged' ? '9:50' : '10:20', S: '10:20', L: '10:28' };
@@ -46,22 +46,22 @@ function newCase(seed) {
     const p = byRole[rl]; if (!p) return;
     const a = (rl === 'L' || (r() < 0.3 && rl !== 'L')) ? D.ABSENT[0] : ab[abi++ % ab.length];
     const d = { place: p.place.name, who: p.short, staff: st.staff.name, out: outTime[rl] };
-    mkClue('c_' + rl, fill(a.t, d), fill(a.x, d), '📎', 'clue', p.place.id);
+    mkClue('c_' + rl, fill(a.t, d), fill(a.x, d), a.i || '📎', 'clue', p.place.id, a.tool || 'tear');
   });
   const subj = pick(people.filter(p => p.role !== 'K'));
-  if (variant === 'staged') mkClue('c_stage', 'The ' + st.piece + ', again', fill(D.STAGECLUE, { piece: st.piece, staff: st.staff.name, v: V.short, Treal: fmt(Treal), T: fmt(T), place: P2.place.name }), '⏱️', 'clue', P2.place.id);
-  else mkClue('c_RH', 'Incriminating papers', 'Tucked out of sight in the ' + P2.place.name + ': ' + fill(D.MOTIVES[subj.motive].doc, { name: subj.short, v: V.short }), '📄', 'clue', P2.place.id);
+  if (variant === 'staged') mkClue('c_stage', 'The ' + st.piece + ', again', fill(D.STAGECLUE, { piece: st.piece, staff: st.staff.name, v: V.short, Treal: fmt(Treal), T: fmt(T), place: P2.place.name }), '⏱️', 'clue', P2.place.id, 'lamp');
+  else mkClue('c_RH', 'Hidden papers', fill(D.MOTIVES[subj.motive].doc, { name: subj.short, v: V.short }), '📄', 'clue', P2.place.id, 'lamp');
   const F = variant === 'frame' ? pick([P1, P2, S]) : null;
-  if (F) mkClue('c_N', F.itemShort, fill('Dumped by the {exit}, still wet: {item}. Odd, though: it reeks of {trait}.', { exit: st.exit.name, item: F.item, trait: K.trait }), '🧤', 'clue', 'exit');
-  else mkClue('c_N', 'Bloody evidence', fill('Dumped by the {exit}, still wet: {thing}. No name on it. But it reeks of {trait}.', { exit: st.exit.name, thing: K.anon, trait: K.trait }), '🧤', 'clue', 'exit');
-  mkClue('c_body', st.staff.name + '\'s last entry', fill('{staff}\'s logbook, last line, scrawled in a shaking hand: “{t} — someone went out the {exit}, fast. Smelled of {trait}.”', { staff: st.staff.name, exit: st.exit.name, trait: K.trait, t: fmt(Treal + 3) }), '📓', 'clue', 'exit');
+  if (F) mkClue('c_N', F.itemShort, fill('{item}, stitched {ini}. Still wet. Reeks of {trait}.', { item: F.itemShort, ini: F.ini, trait: K.trait }), '🧤', 'clue', 'exit', 'fog');
+  else mkClue('c_N', 'Bloody evidence', fill('{thing}. No name. Reeks of {trait}.', { thing: cap(K.anon), trait: K.trait }), '🧤', 'clue', 'exit', 'fog');
+  mkClue('c_body', st.staff.name + '\'s last entry', fill('“{t}. Out the {exit}, fast. {trait}.”', { staff: st.staff.name, exit: st.exit.name, trait: cap(K.trait), t: fmt(Treal + 3) }), '📓', 'clue', 'exit', 'uv');
   const since = variant === 'staged' ? 'since before ten' : 'from before half past ten';
-  mkClue('t_P1', P1.short + ' admits…', fill('{p1} was with {p2} in {spot} {since}, when {v} died. Neither left. Ask {p2} to confirm.', { p1: P1.short, p2: P2.short, spot, v: V.short, since }), '🗣️', 'testimony');
-  if (S) mkClue('t_S', S.short + ' admits…', fill('{s} was on a call from {callSpot} at {t}, logged by the exchange. {s} never saw {k} near the {kp}.', { s: S.short, callSpot: st.callSpot, t: fmt(T - 3), k: K.short, kp: K.place.name }), '🗣️', 'testimony');
-  if (variant !== 'staged') mkClue('t_K', K.short + ' admits…', fill('{k} left the {kp} around 10:30 through the {exit}, alone and unseen. No alibi for {T}.', { k: K.short, kp: K.place.name, exit: st.exit.name, T: fmt(T) }), '🗣️', 'testimony');
+  mkClue('t_P1', P1.short + ' admits…', fill('{p1} + {p2}: {spot}, all night. Ask {p2}.', { p1: P1.short, p2: P2.short, spot, v: V.short, since }), '🗣️', 'testimony');
+  if (S) mkClue('t_S', S.short + ' admits…', fill('{s}: on the phone at {t}. {k} never in the {kp}.', { s: S.short, callSpot: st.callSpot, t: fmt(T - 3), k: K.short, kp: K.place.name }), '🗣️', 'testimony');
+  if (variant !== 'staged') mkClue('t_K', K.short + ' admits…', fill('{k}: out the {exit}, 10:30. Alone. No alibi.', { k: K.short, kp: K.place.name, exit: st.exit.name, T: fmt(T) }), '🗣️', 'testimony');
   else {
-    mkClue('t_KC', K.short + '\'s phone call', fill('{k} was on a logged call from {callSpot}, 10:38 to 10:50. Covers {T}, the time on the {piece}. Airtight, if the {piece} is honest.', { k: K.short, callSpot: st.callSpot, T: fmt(T), piece: st.piece }), '☎️', 'testimony');
-    mkClue('t_L', L.short + ' admits…', fill('{l} slipped out the {exit} alone at about 10:28. Nobody saw where {l} went. No alibi for {T}.', { l: L.short, exit: st.exit.name, T: fmt(T) }), '🗣️', 'testimony');
+    mkClue('t_KC', K.short + '\'s phone call', fill('{k}: logged call, 10:38 to 10:50. Covers {T}. If the {piece} is honest.', { k: K.short, callSpot: st.callSpot, T: fmt(T), piece: st.piece }), '☎️', 'testimony');
+    mkClue('t_L', L.short + ' admits…', fill('{l}: out the {exit} alone, 10:28. No alibi.', { l: L.short, exit: st.exit.name, T: fmt(T) }), '🗣️', 'testimony');
   }
 
   const stmts = {};
@@ -96,7 +96,7 @@ function joinOpen(o, body) { if (/, $/.test(o) && LOWER.test(body)) body = body.
 function wrap(g, p, body, quip) {
   const v = D.VOICES[p.voice];
   let t = joinOpen(g.r() < 0.65 ? pk(g, v.o) : '', body) + (g.r() < 0.45 ? pk(g, v.c) : '');
-  if (quip && g.r() < 0.4) t += ' ' + fresh(g, 'quip' + p.idx, p.quips);
+  if (quip && g.r() < 0.4) fresh(g, 'quip' + p.idx, p.quips);
   return norm(t);
 }
 function fresh(g, key, arr) { g.used = g.used || {}; let u = g.used[key] = g.used[key] || []; if (u.length >= arr.length) u = g.used[key] = []; const left = arr.filter(x => u.indexOf(x) < 0); const c = left[Math.floor(g.r() * left.length)]; u.push(c); return c; }
@@ -166,7 +166,7 @@ function meet(g, i) {
   const p = person(g, i), s = g.stmts['st_claim_' + i];
   if (g.met[i]) return { ok: true, first: false, lines: [] };
   g.met[i] = true;
-  addNote(g, i, 'Smells of ' + p.trait + '.', 'trait');
+  addNote(g, i, '👃 ' + p.trait, 'trait');
   const lines = L(g, p, s.text, 'neutral', true);
   return { ok: true, first: true, lines, events: [] };
 }
@@ -195,14 +195,14 @@ function ask(g, i, topic) {
   if (topic === 'victim') {
     const body = p.role === 'K' ? fill(pk(g, D.DENY), { v: V }) : fill(pk(g, D.MOTIVES[p.motive].admit), { v: V });
     lines = L(g, p, wrap(g, p, body, true), null, true);
-    if (p.role !== 'K') addNote(g, i, 'Motive: ' + D.MOTIVES[p.motive].label.toLowerCase() + ' (admitted).', 'motive');
-    else addNote(g, i, 'Says they got along with ' + V + '.', 'motive');
+    if (p.role !== 'K') addNote(g, i, D.MICON[p.motive] + ' ' + D.MOTIVES[p.motive].label + ' · admits it', 'motive');
+    else addNote(g, i, '🤝 "Got along"', 'motive');
   } else if (topic === 'gossip') {
     const tgt = g.people[p.gossipAbout];
     const body = fill(pk(g, D.MOTIVES[tgt.motive].gossip), { name: tgt.short, v: V });
     lines = L(g, p, wrap(g, p, body, true), null, true);
-    addNote(g, tgt.idx, D.MOTIVES[tgt.motive].label + ' motive, per ' + p.short + '.', 'gossip');
-    addNote(g, i, 'Pointed at ' + tgt.short + '.', 'gossip');
+    addNote(g, tgt.idx, D.MICON[tgt.motive] + ' ' + D.MOTIVES[tgt.motive].label + ' · per ' + p.short, 'gossip');
+    addNote(g, i, '👉 ' + tgt.short, 'gossip');
   } else if (topic === 'saw') {
     const staged = g.variant === 'staged';
     let body;
@@ -210,8 +210,8 @@ function ask(g, i, topic) {
     else if (p.role === 'K') body = fill(pk(g, D.SAW), { exit: g.st.exit.name, trait: g.L.trait, when: 'half past ten' });
     else body = fill(pk(g, D.SAW), { exit: g.st.exit.name, trait: g.K.trait, when: staged ? 'quarter past ten' : 'ten-forty' });
     lines = L(g, p, wrap(g, p, body, false), null, true);
-    addNote(g, i, 'Says someone used the ' + g.st.exit.name + '.', 'sighting');
-    if (!g.leadExit) { g.leadExit = true; lines.push({ k: 'n', text: 'NEW LEAD: ' + g.st.exit.name }); }
+    addNote(g, i, '👁 ' + g.st.exit.name, 'sighting');
+    if (!g.leadExit) { g.leadExit = true; lines.push({ k: 'n', text: '🚪 ' + g.st.exit.name }); }
   }
   const events = spend(g, 1);
   return { ok: true, cost: 1, lines, events, mood: moodOf(g, p) };
@@ -226,7 +226,7 @@ function present(g, i, clueId) {
   if (!hit.length) {
     if (g.F && g.F.idx === i && clueId === 'c_N') {
       g.planted = true; g.nerve[i] = Math.min(3, g.nerve[i] + 1);
-      addNote(g, i, 'Says the ' + p.itemShort.toLowerCase() + ' was stolen and planted. It smells of ' + g.K.trait + ', not ' + p.trait + '.', 'crack');
+      addNote(g, i, '🧤 Planted. Reeks of ' + g.K.trait, 'crack');
       const events = spend(g, 1);
       return { ok: true, type: 'planted', cost: 1, lines: L(g, p, norm(fill(pk(g, D.FRAMED), { trait: p.trait, other: g.K.trait })), 'angry', true), events, mood: 'angry' };
     }
@@ -239,43 +239,43 @@ function present(g, i, clueId) {
   const conf = hit.find(s => s.kind === 'confession'), claim = hit.find(s => s.kind !== 'confession');
   const lines = [], newClues = [], bits = [];
   g.nerve[i] = Math.min(3, g.nerve[i] + 2);
-  const say = t => bits.push({ k: 's', text: norm(pk(g, v.crack) + ' ' + t + (g.r() < 0.6 ? ' ' + p.crack : '')), mood: 'caught' });
+  const say = t => { const c = pk(g, v.crack); g.r(); bits.push({ k: 's', text: norm(c + ' ' + t), mood: 'caught' }); };
   if (conf) { breakStmt(g, conf, clueId); g.confBroken = true; g.cracks++; bits.push({ k: 's', text: norm(pk(g, v.crack) + ' ' + fill(pk(g, D.CONFBREAK), { v: g.V.short })), mood: 'caught' }); }
   if (claim) {
     if (g.conf && g.conf.idx === i && !g.stmts[g.conf.id].broken) { breakStmt(g, g.stmts[g.conf.id], clueId); g.confBroken = true; }
     breakStmt(g, claim, clueId); g.cracks++;
     const d = { place: p.place.name, exit: g.st.exit.name, spot: g.spot, Spot: cap(g.spot), p1: g.P1.short, p2: g.P2.short, k: g.K.short, kplace: g.K.place.name, callSpot: g.st.callSpot, since: g.since, v: g.V.short, piece: g.st.piece, staff: g.st.staff.name, Treal: fmt(g.Treal) };
-    const lead = () => { if (!g.leadExit) { g.leadExit = true; bits.push({ k: 'n', text: 'NEW LEAD: ' + g.st.exit.name }); } };
+    const lead = () => { if (!g.leadExit) { g.leadExit = true; bits.push({ k: 'n', text: '🚪 ' + g.st.exit.name }); } };
     if (claim.kind === 'call') { // staged killer, second lie
       g.status[i] = 'collapsed'; say(fill(pk(g, D.KSTAGE), d));
-      addNote(g, i, 'The ' + g.st.piece + ' was set forward. The phone call proves nothing. No alibi for ' + fmt(g.Treal) + '.', 'crack');
+      addNote(g, i, '⏱ Clock set forward. No alibi', 'crack');
     } else if (claim.kind === 'alone') { // staged loner, cleared
       g.status[i] = 'holds'; say(fill(pk(g, D.LSTAGE), d));
-      addNote(g, i, 'Still in the ' + p.place.name + ' until 10:28, so clear for ' + fmt(g.Treal) + '. Alibi holds.', 'crack');
+      addNote(g, i, '✓ In the ' + p.place.name + ' till 10:28', 'crack');
     } else if (p.role === 'P1') {
       d.secret = D.PAIRSECRET[g.pairIdx]; g.status[i] = 'pending'; pushClue(g, 't_P1', newClues);
       say(fill(pk(g, D.PAIRCRACK), d));
-      addNote(g, i, 'Was with ' + g.P2.short + ' in ' + g.spot + ' (needs ' + g.P2.short + ' to confirm).', 'crack');
+      addNote(g, i, '👥 With ' + g.P2.short + '? Ask', 'crack');
     } else if (p.role === 'P2') {
       d.secret = D.PAIRSECRET[g.pairIdx]; g.status[i] = 'holds'; g.status[g.P1.idx] = 'holds';
       say(fill(pk(g, D.PAIRCONFIRM), d));
-      addNote(g, i, 'Confirmed: with ' + g.P1.short + ' in ' + g.spot + '. Alibi holds.', 'crack');
-      addNote(g, g.P1.idx, 'Confirmed by ' + g.P2.short + '. Alibi holds.', 'crack');
+      addNote(g, i, '✓ With ' + g.P1.short, 'crack');
+      addNote(g, g.P1.idx, '✓ With ' + g.P2.short, 'crack');
     } else if (p.role === 'S') {
       d.call = g.call; g.status[i] = 'holds'; pushClue(g, 't_S', newClues);
       say(fill(D.SOLOCRACK, d));
-      addNote(g, i, 'Was on a logged call at ' + fmt(g.T - 3) + '. Alibi holds.', 'crack');
+      addNote(g, i, '☎️ Logged call ' + fmt(g.T - 3), 'crack');
     } else if (p.role === 'L') {
       g.status[i] = 'collapsed'; pushClue(g, 't_L', newClues); say(fill(pk(g, D.KCRACK), d)); lead();
-      addNote(g, i, 'Out the ' + g.st.exit.name + ' alone at 10:28. No alibi for ' + fmt(g.T) + '.', 'crack');
-      g.stmts['st_alone_' + i] = { id: 'st_alone_' + i, who: i, kind: 'alone', text: norm(p.short + ' admits: out the ' + g.st.exit.name + ' alone from about 10:28. Nobody saw where.'), breakers: ['c_stage'], broken: false };
+      addNote(g, i, '🚶 Alone, 10:28', 'crack');
+      g.stmts['st_alone_' + i] = { id: 'st_alone_' + i, who: i, kind: 'alone', text: norm('Out the ' + g.st.exit.name + ' alone, 10:28.'), breakers: ['c_stage'], broken: false };
     } else if (g.variant === 'staged') { // killer's first lie gives way to a perfect alibi
       g.status[i] = 'holds'; pushClue(g, 't_KC', newClues); say(fill(pk(g, D.KCALL), d));
-      addNote(g, i, 'On a logged call 10:38 to 10:50. Covers ' + fmt(g.T) + '. Alibi holds?', 'crack');
+      addNote(g, i, '☎️ Call 10:38–10:50?', 'crack');
       g.stmts['st_call_' + i] = { id: 'st_call_' + i, who: i, kind: 'call', text: norm(fill(D.KCALLQUOTE, d)), breakers: ['c_stage'], broken: false };
     } else {
       g.status[i] = 'collapsed'; pushClue(g, 't_K', newClues); say(fill(pk(g, D.KCRACK), d)); lead();
-      addNote(g, i, 'Alibi collapsed. Alone, unseen, at the time of death.', 'crack');
+      addNote(g, i, '✗ Alone. No alibi', 'crack');
     }
   }
   if (g.r() < 0.5) lines.push({ k: 'b', text: pk(g, D.STINGERS) });
@@ -286,30 +286,30 @@ function present(g, i, clueId) {
 function nextHint(g) {
   if (g.conf && !g.stmts[g.conf.id].broken) {
     const p = g.people[g.conf.idx];
-    return fill('{p} confessed too easily. Compare the confession with the body. Show {p} the body.', { p: p.short });
+    return fill('Too easy. Show {p} the body.', { p: p.short });
   }
   const unmet = g.people.filter(p => !g.met[p.idx]);
-  if (unmet.length) return 'You haven\'t talked to ' + unmet[0].short + ' yet. Everyone has a story, and every story has a hole.';
+  if (unmet.length) return 'Meet ' + unmet[0].short + '. Everyone lies.';
   const K = g.K;
   if (g.status[K.idx] === 'collapsed' && (g.searched.exit || (g.variant === 'staged' && g.found.c_stage)))
-    return 'One alibi has nothing under it: ' + K.short + '\'s. Make the accusation, and bring your best proof.';
+    return K.short + '. Accuse. Bring proof.';
   for (const p of g.people) for (const s of statementsFor(g, p.idx)) {
     if (s.broken) continue;
     const c = s.breakers.find(b => g.found[b]);
-    if (c) return 'Show ' + g.clues[c].title + ' to ' + p.short + '. Their story won\'t survive it.';
+    if (c) return 'Show ' + g.clues[c].title + ' to ' + p.short + '.';
   }
-  if (g.F && g.found.c_N && !g.planted) return 'That ' + g.F.itemShort.toLowerCase() + ' points straight at ' + g.F.short + '. Too straight. Show it to ' + g.F.short + ', and smell it.';
-  if (g.leadExit && !g.searched.exit) return 'Somebody went out the ' + g.st.exit.name + '. Search it.';
+  if (g.F && g.found.c_N && !g.planted) return 'Too neat. Show it to ' + g.F.short + '.';
+  if (g.leadExit && !g.searched.exit) return 'Search the ' + g.st.exit.name + '.';
   const un = g.st.places.filter(pl => !g.searched[pl.id]);
   if (un.length) {
     let pl = un[Math.floor(g.r() * un.length)];
-    if (g.variant === 'staged' && g.status[K.idx] === 'holds' && !g.searched[g.P2.place.id]) { pl = g.P2.place; return 'That phone call is awfully convenient. Check the time again. Search the ' + pl.name + '.'; }
+    if (g.variant === 'staged' && g.status[K.idx] === 'holds' && !g.searched[g.P2.place.id]) { pl = g.P2.place; return 'Convenient call. Search the ' + pl.name + '.'; }
     const owner = g.people.find(p => p.place.id === pl.id);
-    return owner.short + ' says they were in the ' + pl.name + '. Go see for yourself.';
+    return 'Check ' + owner.short + '\'s ' + pl.name + '.';
   }
-  if (g.status[g.P1.idx] === 'pending') return g.P1.short + ' named ' + g.P2.short + '. Press ' + g.P2.short + ' with ' + g.P1.short + '\'s testimony.';
-  if (!g.leadExit) return 'Ask the ones you\'ve cracked what they noticed. Someone heard a door.';
-  return 'Weigh the alibis. One person has none that holds.';
+  if (g.status[g.P1.idx] === 'pending') return 'Press ' + g.P2.short + ' with ' + g.P1.short + '\'s story.';
+  if (!g.leadExit) return 'Ask the cracked ones. A door slammed.';
+  return 'One alibi has nothing under it.';
 }
 function hint(g) {
   if (locked(g)) return { ok: false, error: 'dawn' };
@@ -331,7 +331,7 @@ function seance(g) {
   if (g.seanced) return { ok: false, error: 'used' };
   g.seanced = true;
   const word = spiritWord(g.K);
-  const text = fill('{v} cannot name a name. The dead never can. But {v} remembers the last thing on the air before the dark: {w}.', { v: g.V.short, w: word.toLowerCase() });
+  const text = fill('The last thing on the air: {w}.', { v: g.V.short, w: word.toLowerCase() });
   const events = spend(g, SEANCE_COST);
   return { ok: true, cost: SEANCE_COST, word, text, events };
 }
@@ -356,11 +356,11 @@ function polygraph(g, i) {
   ];
   const bpm = p.role === 'K' ? 66 : 76 + Math.min(3, g.nerve[i]) * 7;
   const say = { true: 'steady', lie: 'spiked', jump: 'went wild', ice: 'went dead flat' };
-  const verdict = murder === 'ice' ? fill('Asked if {p} killed {v}, the pulse pen went dead flat. Heart slowed down. The operator lights a cigarette: “Nobody is that calm about a murder.”', { p: p.short, v: g.V.short })
-    : murder === 'jump' ? fill('Asked about {v}, every pen jumped. Scared stiff. The operator shrugs: “Fear and guilt draw the same line, Detective.”', { v: g.V.short })
-    : fill('Asked about {v}, the pens barely moved. Sad, maybe. Not scared.', { v: g.V.short });
+  const verdict = murder === 'ice' ? fill('Dead flat. Nobody\'s that calm.', { p: p.short, v: g.V.short })
+    : murder === 'jump' ? fill('Every pen jumped. Fear, or guilt.', { v: g.V.short })
+    : fill('Barely moved. Sad. Not scared.', { v: g.V.short });
   g.poly[i] = { qs, murder, story: storyLie, bpm };
-  addNote(g, i, '📈 Lie box: story ' + say[storyLie ? 'lie' : 'true'] + '; asked about the murder, the needle ' + say[murder] + '.', 'poly');
+  addNote(g, i, '📈 story ' + say[storyLie ? 'lie' : 'true'] + ' · murder ' + say[murder], 'poly');
   const events = spend(g, 1);
   return { ok: true, cost: 1, qs, bpm, murder, story: storyLie, verdict, left: polyLeft(g), events };
 }
@@ -379,14 +379,14 @@ function safe(g, how) {
   if (locked(g)) return { ok: false, error: 'dawn' };
   if (g.safe) return { ok: false, error: 'used' };
   const p = safePick(g), Tr = fmt(g.Treal), other = p.role === 'P1' ? g.P2 : p.role === 'P2' ? g.P1 : null;
-  const where = other ? fill('{p} and {o}, heads together in {spot}', { p: p.short, o: other.short, spot: g.spot })
-    : p.role === 'S' ? fill('{p} on the line at {cs}, receiver to one ear', { p: p.short, cs: g.st.callSpot })
-    : fill('{p} in the {pl}, looking bored', { p: p.short, pl: p.place.name });
-  const text = fill('The house photographer\'s contact sheet, locked in {v}\'s safe for the morning papers. Frame 17, flash-stamped {t}, the minute {v} died: {w}. Whoever did it, it wasn\'t {s}.', { v: g.V.short, t: Tr, w: where, s: other ? p.short + ' or ' + other.short : p.short });
+  const where = other ? fill('{p} and {o}, {spot}', { p: p.short, o: other.short, spot: g.spot })
+    : p.role === 'S' ? fill('{p}, on the phone', { p: p.short, cs: g.st.callSpot })
+    : fill('{p}, in the {pl}', { p: p.short, pl: p.place.name });
+  const text = fill('Frame 17, {t}: {w}. Not {s}.', { v: g.V.short, t: Tr, w: where, s: other ? p.short + ' or ' + other.short : p.short });
   const cost = how === 'blow' ? 2 : 1;
   g.safe = { idx: p.idx, how: how === 'blow' ? 'blow' : 'crack', text };
-  addNote(g, p.idx, '🔐 From the safe: photographed ' + (other ? 'with ' + other.short + ' in ' + g.spot : p.role === 'S' ? 'on the phone at ' + g.st.callSpot : 'in the ' + p.place.name) + ' at ' + Tr + '. Not the killer.', 'safe');
-  if (other) addNote(g, other.idx, '🔐 From the safe: photographed with ' + p.short + ' in ' + g.spot + ' at ' + Tr + '. Not the killer.', 'safe');
+  addNote(g, p.idx, '🔐 Photo, ' + Tr + '. Not the killer', 'safe');
+  if (other) addNote(g, other.idx, '🔐 Photo, ' + Tr + '. Not the killer', 'safe');
   const events = spend(g, cost);
   return { ok: true, cost, idx: p.idx, text, how: g.safe.how, events };
 }
@@ -410,28 +410,28 @@ function accuse(g, i, proofId) {
   } else score = clueList(g).length * 20;
   const rank = win ? D.RANKS.find(r => score >= r.min) : { name: 'Cold Case', icon: '🥶', line: p.short + ' walked. ' + K.short + ' laughed all the way home.' };
   const lines = [], vK = D.VOICES[K.voice], vP = D.VOICES[p.voice], st = g.st;
-  lines.push({ k: 'n', text: win ? 'You lay it out under the lamp. ' + K.short + ' doesn\'t blink.' : 'You point at ' + p.short + '. The room holds its breath.' });
+  lines.push({ k: 'n', text: win ? 'Under the lamp. ' + K.short + ' doesn\'t blink.' : 'You point at ' + p.short + '. Silence.' });
   if (win) {
-    if (g.variant === 'staged') lines.push({ k: 'n', text: 'The ' + st.piece + ' said ' + fmt(g.T) + '. It lied. ' + V.short + ' died around ' + fmt(g.Treal) + ', and ' + K.short + '\'s phone call was an alibi built after the fact.' });
-    else if (g.variant === 'frame') lines.push({ k: 'n', text: 'The ' + g.F.itemShort.toLowerCase() + ' said ' + g.F.short + '. But ' + g.F.short + ' was nowhere near, and it reeks of ' + K.trait + '. Somebody planted it. Somebody who smells like ' + K.short + '.' });
-    else lines.push({ k: 'n', text: 'The ' + st.piece + ' stopped at ' + fmt(g.T) + '. ' + K.short + ' swore to the ' + K.place.name + '. It was empty.' });
-    if (proof === 'strong' && g.variant !== 'frame') lines.push({ k: 'n', text: proofId === 'c_stage' ? 'You hold up the ' + st.piece + '. The crown is still pulled out.' : 'And in the ' + st.exit.name + ': ' + K.anon + ', reeking of ' + K.trait + '.' });
-    else if (proof === 'fair') lines.push({ k: 'n', text: 'No weapon, no glove. Just a story with nothing under it. It was enough.' });
-    else if (proof === 'none') lines.push({ k: 'n', text: 'No proof in your hand. Just nerve. ' + K.short + ' smiles at you. For a second.' });
+    if (g.variant === 'staged') lines.push({ k: 'n', text: 'The ' + st.piece + ' lied. Dead by ' + fmt(g.Treal) + '. The call came after.' });
+    else if (g.variant === 'frame') lines.push({ k: 'n', text: 'Planted on ' + g.F.short + '. It reeks of ' + K.trait + '.' });
+    else lines.push({ k: 'n', text: fmt(g.T) + '. The ' + K.place.name + ' was empty.' });
+    if (proof === 'strong' && g.variant !== 'frame') lines.push({ k: 'n', text: proofId === 'c_stage' ? 'The ' + st.piece + '. Crown still pulled.' : cap(K.anon) + '. ' + cap(K.trait) + '.' });
+    else if (proof === 'fair') lines.push({ k: 'n', text: 'No glove. Just a dead story. Enough.' });
+    else if (proof === 'none') lines.push({ k: 'n', text: 'No proof. Just nerve.' });
     const mot = fill(pk(g, D.MOTIVES[K.motive].reveal), { v: V.short, weapon: st.weapon });
-    lines.push({ k: 's', text: norm(pk(g, vK.conf) + ' ' + mot + ' ' + K.caughtLine), mood: 'caught', idx: K.idx });
+    pk(g, vK.conf); lines.push({ k: 's', text: norm(mot), mood: 'caught', idx: K.idx });
   } else {
-    lines.push({ k: 's', text: norm(p.wrongAcc + ' ' + pk(g, vP.fail)), mood: 'smug', idx: p.idx });
+    pk(g, vP.fail); lines.push({ k: 's', text: norm(p.wrongAcc), mood: 'smug', idx: p.idx });
     let why = '';
-    if (g.variant === 'staged' && p.role === 'L') why = ' The ' + st.piece + ' had been set forward. ' + p.short + ' was in the ' + p.place.name + ' when it happened.';
-    if (g.variant === 'frame' && g.F && p.idx === g.F.idx) why = ' The ' + p.itemShort.toLowerCase() + ' was planted. It smelled of ' + K.trait + ' all along.';
-    lines.push({ k: 'n', text: 'The Commissioner takes it from there. By morning ' + p.short + ' is gone, and so is your case.' + why + ' It was ' + K.short + '.' });
+    if (g.variant === 'staged' && p.role === 'L') why = ' The clock was set.';
+    if (g.variant === 'frame' && g.F && p.idx === g.F.idx) why = ' A plant.';
+    lines.push({ k: 'n', text: 'Wrong.' + why + ' It was ' + K.short + '.' });
   }
   const recap = g.people.map(x => ({ idx: x.idx, name: x.name, role: x.role,
-    truth: x.role === 'K' ? (g.variant === 'staged' ? 'The killer. Set the ' + st.piece + ' forward, then made a phone call for an alibi.' : g.variant === 'frame' ? 'The killer. Planted ' + g.F.short + '\'s ' + g.F.itemShort.toLowerCase().replace(/^bloody /, '') + '.' : 'The killer.') + ' Motive: ' + D.MOTIVES[x.motive].label.toLowerCase() + '.' :
-      x.role === 'P1' || x.role === 'P2' ? 'Was with ' + (x.role === 'P1' ? g.P2.short : g.P1.short) + ' in ' + g.spot + '.' + (g.F && g.F.idx === x.idx ? ' Framed.' : '') :
-      x.role === 'L' ? 'Slipped out the ' + st.exit.name + ' at 10:28, after it was already done. Innocent, and very unlucky.' :
-      'Was on a phone call from ' + st.callSpot + '.' + (g.F && g.F.idx === x.idx ? ' Framed.' : '') }));
+    truth: x.role === 'K' ? '☠️ Killer' + (g.variant === 'staged' ? ' · set the clock' : g.variant === 'frame' ? ' · framed ' + g.F.short : '') + ' · ' + D.MICON[x.motive] + ' ' + D.MOTIVES[x.motive].label.toLowerCase() :
+      x.role === 'P1' || x.role === 'P2' ? '👥 With ' + (x.role === 'P1' ? g.P2.short : g.P1.short) + (g.F && g.F.idx === x.idx ? ' · framed' : '') :
+      x.role === 'L' ? '🚶 Out at 10:28. Too late' :
+      '☎️ On the phone' + (g.F && g.F.idx === x.idx ? ' · framed' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
     stats: { safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
