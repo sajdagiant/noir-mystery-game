@@ -481,9 +481,9 @@ function renderIAct() {
   const tps = E.topics(G, cur), a = $('#iAct'), dawn = G.dawn || G.over;
   const lab = { victim: '💀 ' + esc(G.V.short) + '?', gossip: '🗡️ Grudges?', saw: '👁️ Seen?' };
   a.innerHTML = tps.map((t, i) => `<button class="ab ${t.done ? 'done' : ''} ${tps.length === 3 && i === 2 ? 'wide' : ''}" data-t="${t.id}" aria-label="${esc(t.label)}">${lab[t.id] || esc(t.label)}<small>${t.done ? '✓' : '⏱1'}</small></button>`).join('')
-    + polyBtn() + `<button class="ab ev" id="aEv" aria-label="Show evidence">🗂️ Evidence<small>⏱1 · ✗ ⏱2</small></button><button class="ab acc" id="aAcc" aria-label="Accuse">☠️ Accuse<small>final</small></button>`;
+    + polyBtn() + liftBtn() + `<button class="ab ev" id="aEv" aria-label="Show evidence">🗂️ Evidence<small>⏱1 · ✗ ⏱2</small></button><button class="ab acc" id="aAcc" aria-label="Accuse">☠️ Accuse<small>final</small></button>`;
   a.querySelectorAll('[data-t]').forEach(b => b.onclick = () => doAsk(b.dataset.t));
-  $('#aEv').onclick = () => pickEvidence(); $('#aAcc').onclick = () => openAccuse(false); if ($('#aPoly')) $('#aPoly').onclick = doPoly;
+  $('#aEv').onclick = () => pickEvidence(); $('#aAcc').onclick = () => openAccuse(false); if ($('#aPoly')) $('#aPoly').onclick = doPoly; if ($('#aLift')) $('#aLift').onclick = doLift;
   a.classList.toggle('busy', busy || dawn);
 }
 async function openInterview(i, pressWith) {
@@ -762,13 +762,99 @@ async function showSafeCard(r) {
   await modal(`<div class="dark safecard ${r.how === 'blow' ? 'blown' : 'clean'}"><small>${r.how === 'blow' ? '🧨 WHAT SURVIVED' : '🔓 INSIDE'}</small><div class="neg big">${[p, o].filter(Boolean).map(x => `<span>${A.portrait(x.art, { accent: G.st.accent, mood: 'neutral', label: x.name })}</span>`).join('')}<i>17</i></div><p id="sfTx"></p>${r.how === 'crack' ? '<div class="chips c"><span>+' + E.SAFE_BONUS + '</span></div>' : ''}<button class="btn" data-r="ok">📌 Pin it</button></div>`, () => typeText($('#sfTx'), r.text, 12));
 }
 
+/* ---------- the lift: pick a suspect's pocket while their back is turned. Pull the hanky slow, wiggle it past the button, FREEZE when they glance back. ---------- */
+function liftBtn() {
+  if (!G.met[cur]) return '';
+  const L = G.lift && G.lift[cur];
+  if (L) return `<button class="ab lift done" id="aLift">🫳 ${L.caught ? '✋' : '👃'}<small>📌</small></button>`;
+  const n = E.liftLeft(G);
+  return `<button class="ab lift ${n < 1 ? 'out' : ''}" id="aLift" aria-label="Pick their pocket">🫳 Lift<small>${n < 1 ? '✋ 0' : '⏱1 · ✋ ' + n}</small></button>`;
+}
+async function doLift() {
+  if (busy || G.over || cur === null) return;
+  const i = cur, p = G.people[i];
+  if (G.lift && G.lift[i]) { S.sfx.tap(); return toast('🫳 📌'); }
+  if (E.liftLeft(G) < 1) { S.sfx.wrong(); return toast('✋ 0'); }
+  if (G.dawn) return;
+  busy = true; renderIAct(); if (S.setScene) S.setScene('lift'); S.sfx.liftMode(true);
+  let r = null;
+  const res = await runLift(p, caught => { r = E.lift(G, i, caught); updateHud(true); return r; });
+  S.sfx.freeze(false); S.sfx.liftMode(false); if (S.setScene) S.setScene(G.st.id);
+  renderAll(); if (cur !== null) renderIHead();
+  if (r && r.ok) { if (res === 'caught') { setPort(i, 'angry'); } await afterAction(r.events); }
+  busy = false; renderIAct();
+}
+const HANKY = ini => `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><linearGradient id="hkG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6eedb"/><stop offset=".6" stop-color="#e6d8b8"/><stop offset="1" stop-color="#cdbb94"/></linearGradient></defs>
+  <path d="M60 2 L116 40 L112 148 L8 148 L4 40 Z" fill="url(#hkG)"/><path d="M60 10 L106 42 L103 140 L17 140 L14 42 Z" fill="none" stroke="#b08a3e" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M60 2 L60 148" stroke="#0000000f" stroke-width="6"/><path d="M4 40 L116 40" stroke="#00000012" stroke-width="3"/>
+  <text x="60" y="34" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="17" fill="#8c2a1c">${esc(ini || '')}</text></svg>`;
+function runLift(p, settle) {
+  return new Promise(done => {
+    const auto = (location.search.match(/[?&]autolift(?:=(\w+))?/) || [])[0] ? ((location.search.match(/[?&]autolift=(\w+)/) || [])[1] || 'clean') : null;
+    const ov = document.createElement('div'); ov.className = 'liftov'; ov.id = 'lift';
+    const port = m => A.portrait(p.art, { accent: G.st.accent, mood: m, nerve: G.nerve[p.idx], label: p.name });
+    ov.innerHTML = `<div class="lfhead"><small>THE LIFT · ${esc(G.st.name.toUpperCase())}</small><b>${esc(p.short)}</b><div class="lfeye" aria-label="Suspicion"><span>👁</span><i><b id="lfSus"></b></i></div></div>
+      <div class="lfwho" id="lfWho"><div class="lfback">${port('neutral')}</div><div class="lflook">${port('angry')}</div><div class="lfhm">?</div></div>
+      <div class="lfcoat" id="lfCoat"><div class="lflining"></div><div class="lfclip"><div class="lfhank" id="lfHank">${HANKY(p.ini)}</div></div><div class="lfpocket"><i></i></div><div class="lfbtn"></div>
+        <div class="lfhint" id="lfHint">☝️<b>↑</b></div><div class="lfwig" id="lfWig">↔</div><div class="lffreeze">✋</div></div>
+      <div class="lfprog"><i id="lfProg"></i></div>
+      <button class="lfaway" id="lfAway">Walk away</button><div class="lfcard" id="lfCard"></div>`;
+    document.body.appendChild(ov); S.sfx.page(); hap('tap');
+    const hank = $('#lfHank'), coat = $('#lfCoat'), susEl = $('#lfSus'), prog = $('#lfProg'), hint = $('#lfHint'), wig = $('#lfWig');
+    const NEED = 128, SNAG = 0.52, jumpy = G.nerve[p.idx] >= 2 ? 0.75 : 1;
+    let pull = 0, sus = 0, grip = null, closed = false, ended = false, raf = 0, last = performance.now(), v = 0, moveAcc = 0, lookMoved = 0, snagged = false, freed = false, wiggle = 0, tilt = 0, lastTickP = 0;
+    let phase = 'away', pt = (2.2 + Math.random() * 1.2) * jumpy, lookDur = 1.2, ai = { x: 0, y: 0, dir: 1 };
+    const setPhase = ph => { phase = ph; ov.classList.toggle('tell', ph === 'tell'); ov.classList.toggle('look', ph === 'look');
+      if (ph === 'tell') { pt = 0.62; S.sfx.hm(); hap('pulse'); }
+      else if (ph === 'look') { lookDur = pt = (1.0 + Math.random() * 0.7); lookMoved = 0; S.sfx.freeze(true); hap('beat'); }
+      else { pt = (1.5 + Math.random() * 1.7) * jumpy; S.sfx.freeze(false); } };
+    const render = () => { const k = Math.min(1, pull / NEED); hank.style.transform = `translate(-50%,${-pull}px) rotate(${tilt.toFixed(1)}deg)`; prog.style.width = (k * 100).toFixed(1) + '%';
+      susEl.style.width = (sus * 100).toFixed(1) + '%'; ov.style.setProperty('--sus', sus.toFixed(2)); };
+    const finish = caught => { if (ended) return; ended = true; grip = null; ov.classList.remove('grip', 'tell'); cancelAnimationFrame(raf);
+      const r = settle(caught); const card = $('#lfCard');
+      if (caught) { ov.classList.add('caught', 'look'); S.sfx.freeze(false); S.sfx.grab(); hap('miss'); ov.classList.remove('shake'); void ov.offsetWidth; ov.classList.add('shake');
+        card.innerHTML = `<div class="lfport">${port('angry')}</div><div class="lfstamp bad">CAUGHT</div><div class="chips c"><span>✋ ${esc(p.short)}</span><span>⏱ −1</span></div><button class="btn" id="lfOk">Back off</button>`; }
+      else { ov.classList.add('won'); S.sfx.freeze(false); S.sfx.flutter(); hap('lift'); if (window.NoirFx) NoirFx.flash();
+        const m = r && r.glove ? (r.match ? `<div class="lfstamp bad">🧤 = 👃</div>` : `<div class="lfstamp ok">🧤 ≠ 👃</div>`) : `<div class="chips c"><span>🧤 ?</span></div>`;
+        card.innerHTML = `<div class="lfsilk">${HANKY(p.ini)}<div class="lfsmoke"><i></i><i></i><i></i></div></div><small>👃 ${esc(p.short)}</small><div class="lfword">${esc(r && r.word || '')}</div>${m}<button class="btn" id="lfOk">📌 Pin it</button>`; }
+      setTimeout(() => card.classList.add('on'), FAST ? 0 : caught ? 650 : 900);
+      $('#lfOk').onclick = () => { S.sfx.tap(); close(caught ? 'caught' : 'clean'); };
+      if (auto) setTimeout(() => { if (!closed) close(caught ? 'caught' : 'clean'); }, FAST ? 150 : 2400); };
+    const close = how => { if (closed) return; closed = true; cancelAnimationFrame(raf); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(how); }, FAST ? 0 : 420); };
+    $('#lfAway').onclick = () => { if (ended) return; ended = true; cancelAnimationFrame(raf); close(null); };
+    const near = e => { const b = hank.getBoundingClientRect(); return e.clientX > b.left - 50 && e.clientX < b.right + 50 && e.clientY > b.top - 60 && e.clientY < b.top + 140; };
+    coat.addEventListener('pointerdown', e => { if (ended) return; e.preventDefault(); if (!near(e)) { hint.classList.remove('nudge'); void hint.offsetWidth; hint.classList.add('nudge'); return; }
+      grip = { x: e.clientX, y: e.clientY, t: performance.now() }; try { coat.setPointerCapture(e.pointerId); } catch (_) {} ov.classList.add('grip'); hint.classList.add('gone'); hap('tap'); });
+    const move = (dx, dy) => { if (ended) return; const d = Math.hypot(dx, dy); moveAcc += d; if (phase === 'look') { lookMoved += d; if (lookMoved > 7) return finish(true); }
+      tilt = Math.max(-14, Math.min(14, tilt + dx * 0.25));
+      if (snagged && !freed) { wiggle += Math.abs(dx); if (wiggle > 70) { freed = true; snagged = false; ov.classList.remove('snag'); S.sfx.twang(); hap('crack'); } else if (Math.abs(dx) > 1) S.sfx.rustle(400); }
+      else { pull = Math.max(0, pull + (-dy) * 0.5); if (!freed && pull >= NEED * SNAG) { pull = NEED * SNAG; snagged = true; ov.classList.add('snag'); S.sfx.tumbler(); hap('tap'); } }
+      if (Math.abs(dy) > 0.5 || Math.abs(dx) > 0.5) S.sfx.rustle(v);
+      if (pull - lastTickP > NEED * 0.08) { lastTickP = pull; hap('dust'); }
+      if (pull >= NEED) finish(false); };
+    coat.addEventListener('pointermove', e => { if (!grip || ended) return; const dx = e.clientX - grip.x, dy = e.clientY - grip.y; grip.x = e.clientX; grip.y = e.clientY; move(dx, dy); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => coat.addEventListener(k, () => { grip = null; ov.classList.remove('grip'); }));
+    const step = now => { const dt = Math.min(0.05, (now - last) / 1000) * (FAST && auto ? 4 : 1); last = now; if (ended) return;
+      if (auto) { // a simulated finger: patient when clean, careless when told to get caught
+        const still = auto === 'clean' && phase !== 'away';
+        if (!still) { if (snagged) { ai.dir = -ai.dir; move(ai.dir * 9, 0); } else move(Math.sin(now / 160) * 0.6, -150 * dt); } }
+      v = v * 0.8 + (moveAcc / Math.max(dt, 0.001)) * 0.2; moveAcc = 0;
+      sus = Math.max(0, Math.min(1, sus + dt * (Math.max(0, v - 170) / 320 - 0.28))); if (sus >= 1 && !ended) { ov.classList.add('look'); return finish(true); }
+      if (!grip && !auto && pull > 0 && !snagged) pull = Math.max(0, pull - 14 * dt);
+      tilt *= Math.pow(0.2, dt);
+      pt -= dt; if (pt <= 0) setPhase(phase === 'away' ? 'tell' : phase === 'tell' ? 'look' : 'away');
+      render(); if (!closed && !ended) raf = requestAnimationFrame(step); };
+    render(); raf = requestAnimationFrame(step);
+  });
+}
+
 /* ---------- the lie box: a 1940s polygraph. Hold the lever, the chart paper rolls, three pens draw the suspect's pulse, breath and sweat ---------- */
 const POLY_TAG = { true: ['TRUE', 'ok'], lie: ['LIE', 'bad'], jump: ['SPIKE', 'bad'], ice: ['FLAT', 'ice'] };
 function polyBtn() {
   if (!G.met[cur]) return '';
-  if (G.poly && G.poly[cur]) return `<button class="ab poly wide done" id="aPoly">📈 ${esc(POLY_TAG[G.poly[cur].murder][0])}<small>📌</small></button>`;
+  if (G.poly && G.poly[cur]) return `<button class="ab poly done" id="aPoly">📈 ${esc(POLY_TAG[G.poly[cur].murder][0])}<small>📌</small></button>`;
   const n = E.polyLeft(G);
-  return `<button class="ab poly wide ${n < 1 ? 'out' : ''}" id="aPoly" aria-label="Lie box">📈 Lie box<small>${n < 1 ? '📄 0' : '⏱1 · −40 · 📄 ' + n}</small></button>`;
+  return `<button class="ab poly ${n < 1 ? 'out' : ''}" id="aPoly" aria-label="Lie box">📈 Lie box<small>${n < 1 ? '📄 0' : '⏱1 · −40 · 📄 ' + n}</small></button>`;
 }
 async function doPoly() {
   if (busy || G.over || cur === null) return;
@@ -1061,7 +1147,7 @@ async function showResult(res) {
   const rank = res.rank;
   $('#rfin').innerHTML = `<div class="rcard" style="text-align:center"><div class="rstamp ${res.win ? 'ok' : 'bad'}">${res.win ? 'CASE CLOSED' : 'COLD CASE'}</div><p class="rank">${rank.icon} ${esc(rank.name)}</p><p class="rline">${esc(rank.line)}</p><div class="score" id="scoreN">0</div>
   <div class="sgrid"><div><b>${res.stats.left}</b>⏱ left</div><div><b>${res.stats.cracks}</b>🔓 lies</div><div><b>${res.stats.bluffs}</b>✗ misses</div><div><b>${res.proof === 'strong' ? '✓' : res.proof === 'fair' ? '~' : '–'}</b>🧾 proof</div></div>
-  <div class="chips c">${res.stats.confession ? `<span>🎭 ${res.stats.sawThrough ? '✓' : '✗'}</span>` : ''}${res.stats.body ? `<span>💀 ×2</span>` : ''}${res.stats.poly ? `<span>📈 ×${res.stats.poly}</span>` : ''}${res.stats.safe ? `<span>${res.stats.safe === 'crack' ? '🔐 +' + E.SAFE_BONUS : '🧨'}</span>` : ''}${res.stats.seance ? `<span>👻</span>` : ''}</div>${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 Collared on the rooftops, ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 The uniforms ran the rooftops.' : '🏃 Lost on the rooftops.'}</p>` : ''}
+  <div class="chips c">${res.stats.confession ? `<span>🎭 ${res.stats.sawThrough ? '✓' : '✗'}</span>` : ''}${res.stats.body ? `<span>💀 ×2</span>` : ''}${res.stats.poly ? `<span>📈 ×${res.stats.poly}</span>` : ''}${res.stats.lift ? `<span>🫳 ×${res.stats.lift}</span>` : ''}${res.stats.safe ? `<span>${res.stats.safe === 'crack' ? '🔐 +' + E.SAFE_BONUS : '🧨'}</span>` : ''}${res.stats.seance ? `<span>👻</span>` : ''}</div>${res.chase ? `<p class="rline">${res.chase.caught ? '🚓 Collared on the rooftops, ' + res.chase.secs + 's. +' + CHASE_BONUS : res.chase.skipped ? '🚔 The uniforms ran the rooftops.' : '🏃 Lost on the rooftops.'}</p>` : ''}
   <div class="recap">${res.recap.map(r => { const p = G.people[r.idx]; return `<div><span class="av">${A.portrait(p.art, { accent: G.st.accent, mood: 'neutral', label: p.name })}</span><span><b>${esc(p.name)}</b><br><span class="${r.role === 'K' ? 'k' : ''}">${esc(r.truth)}</span></span></div>`; }).join('')}</div>
   <p class="epi">${esc(res.epi)}</p>
   <button class="cta" id="bShare" data-now>📤 Share</button><button class="cta alt" id="bNext">Next case</button><div class="row2"><button class="cta alt" id="bRe">↺ Replay</button><button class="cta alt" id="bTitle">⌂ Title</button></div></div>`;
@@ -1105,6 +1191,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, showClue: (c, t) => showClue(c, t), setView, safe: doSafe, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
+window.__noir = { get G() { return G; }, E, newGame, showClue: (c, t) => showClue(c, t), setView, safe: doSafe, lift: doLift, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

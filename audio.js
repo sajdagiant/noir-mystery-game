@@ -206,6 +206,12 @@ STYLES.safe = { bpm: 92, div: 2, swing: 0.12, ch: [[38, 53, 57, 60], [38, 53, 57
     if (i % 2 === 1) noiseHit(t, WN, 'highpass', 7800, 0.7, 0.012, 0.03); if (i === 4) brush(t, 0.04);
     if (i === 0 && bar % 2 === 0) pad(t, ch.slice(1).map(m => m - 12), 0.02, 4.4, 'string', 700);
     if (bar === 3 && (i === 2 || i === 5) && R() < 0.8) vibe(t, pk(s.sc), 0.025); } };
+// the lift: instrumental only. Tiptoe vamp: staccato pizzicato bass creeping chromatically, finger snaps on 2 and 4, a muted vibe answering on the offbeats
+STYLES.lift = { bpm: 100, div: 2, swing: 0.16, ch: [[45, 60, 64, 67], [45, 60, 63, 67], [44, 59, 62, 65], [43, 58, 62, 65]], sc: [69, 72, 74, 75, 76, 79],
+  play(t, bar, i, s, ch) { if (i % 2 === 0) bass(t, ch[0] + [0, 7, 12, 6][i / 2], 0.34, 0.09); if (i === 7 && bar % 2) bass(t, ch[0] + 11, 0.22, 0.07);
+    if (i === 2 || i === 6) { noiseHit(t, WN, 'bandpass', 2300, 3, 0.05, 0.03); noiseHit(t + 0.004, PN, 'bandpass', 900, 2, 0.03, 0.04); }
+    if (i % 2 === 1) noiseHit(t, WN, 'highpass', 8000, 0.7, 0.008, 0.025);
+    if ((i === 3 || i === 7) && R() < 0.55) vibe(t, pk(s.sc) - 12, 0.022); if (i === 0 && bar === 0) pad(t, ch.slice(1).map(m => m - 12), 0.016, 4.2, 'string', 650); } };
 function setScene(id) { style = STYLES[id] ? id : 'title';
   if (!ctx) return; const w = WEATHER[style] || WEATHER.title, n = now();
   [rain.hg, rain.bg, rain.gg, rain.rg, rain.wg].forEach((g, i) => g && g.gain.setTargetAtTime(w[i], n, 1.5)); rain.drops = w[5]; }
@@ -332,6 +338,17 @@ const S = {
     for (let k = 0; k < 14; k++) noiseHit(t + 0.4 + Math.random() * 1.2, WN, 'bandpass', 2000 + Math.random() * 4000, 8, 0.05 + Math.random() * 0.08, 0.05, sfxG); }, // debris
   fuse() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 22; k++) noiseHit(t + k * 0.07 + Math.random() * 0.03, WN, 'highpass', 5000 + Math.random() * 3000, 1, 0.03 + Math.random() * 0.04, 0.04, sfxG); },
   // the chase
+  // the lift
+  liftMode(onOff) { if (!ctx || !musG) return; musG.gain.setTargetAtTime(onOff ? 0.5 : 0.62, now(), 0.4); },
+  freeze(onOff) { if (!ctx || !musG) return; musG.gain.setTargetAtTime(onOff ? 0.03 : 0.5, now(), onOff ? 0.03 : 0.12); },
+  rustle(v) { if (!ctx || !on) return; const n = now(); if (n - lastBrush < 0.05) return; lastBrush = n; const k = Math.min(1, (v || 0) / 600);
+    noiseHit(n, PN, 'bandpass', 700 + Math.random() * 900 + k * 800, 0.9, 0.025 + k * 0.07, 0.09, sfxG, 0.7 + Math.random() * 0.4); },
+  hm() { if (!ctx || !on) return; const t = now(); [[150, 0.07], [300, 0.025]].forEach(([f, v]) => { const g = ctx.createGain(), o = osc('triangle', f, t, t + 0.6); o.frequency.setValueAtTime(f, t + 0.08); o.frequency.exponentialRampToValueAtTime(f * 1.24, t + 0.32);
+    env(g, t, 0.04, v, 0.22, 0.08); chain(o, biq('lowpass', 900, 0.8), g, sfxG); }); },
+  grab() { if (!ctx || !on) return; const t = now(); const g = ctx.createGain(), o = osc('sine', 140, t, t + 0.5); o.frequency.exponentialRampToValueAtTime(50, t + 0.16); env(g, t, 0.002, 0.45, 0.05, 0.1); chain(o, g, sfxG);
+    noiseHit(t, PN, 'lowpass', 1100, 0.7, 0.3, 0.14, sfxG, 0.8); [[110, 0.12], [98, 0.34]].forEach(([f, d]) => { const gg = ctx.createGain(); env(gg, t + d, 0.02, 0.06, 0.25, 0.25); chain(osc('reed', f, t + d, t + d + 1), biq('lowpass', 800), gg, sfxG); }); },
+  flutter() { if (!ctx || !on) return; const t = now(); for (let k = 0; k < 6; k++) noiseHit(t + k * 0.06, PN, 'bandpass', 900 + k * 260, 1.1, 0.06 - k * 0.006, 0.08, sfxG, 1 + k * 0.08);
+    [79, 84, 88].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.25 + i * 0.09, 0.003, 0.045, 0.08, 0.7); chain(osc('sine', mtof(m), t + 0.25 + i * 0.09, t + 3), g, sfxG); }); },
   jump() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 1300, 0.9, 0.16, 0.2, sfxG, 1.4); const g = ctx.createGain(), o = osc('sine', 260, t, t + 0.3); o.frequency.exponentialRampToValueAtTime(520, t + 0.12); env(g, t, 0.004, 0.03, 0.06, 0.08); chain(o, g, sfxG); },
   land(v) { if (!ctx || !on) return; const t = now(), k = Math.min(1, v || 0.5); const g = ctx.createGain(), o = osc('sine', 130, t, t + 0.4); o.frequency.exponentialRampToValueAtTime(48, t + 0.14); env(g, t, 0.002, 0.18 + k * 0.25, 0.05, 0.1); chain(o, g, sfxG); noiseHit(t, PN, 'lowpass', 1500, 0.8, 0.12 + k * 0.12, 0.12, sfxG, 0.9); },
   step() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'bandpass', 700 + Math.random() * 500, 1.4, 0.07, 0.05, sfxG, 1.1); },

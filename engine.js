@@ -392,6 +392,22 @@ function safe(g, how) {
 }
 const SAFE_BONUS = 60;
 
+/* ---------- the lift: pick a suspect's pocket while their back is turned. Twice per case, 1 move each. A clean lift gets their handkerchief (and its smell); a caught hand gets nothing. ---------- */
+const LIFT_MAX = 2;
+function liftLeft(g) { return LIFT_MAX - Object.keys(g.lift || {}).length; }
+function lift(g, i, caught) {
+  if (locked(g)) return { ok: false, error: 'dawn' };
+  const p = g.people[i]; if (!p || !g.met[i]) return { ok: false, error: 'unmet' };
+  g.lift = g.lift || {}; if (g.lift[i]) return { ok: false, error: 'done' };
+  if (liftLeft(g) < 1) return { ok: false, error: 'out' };
+  const glove = !!g.found.c_N, match = p.trait === g.K.trait;
+  g.lift[i] = caught ? { caught: true } : { caught: false, trait: p.trait, match };
+  if (caught) addNote(g, i, '🫳 Caught my hand', 'lift');
+  else addNote(g, i, '🫳 Hanky: ' + p.trait + (glove ? (match ? ' = 🧤' : ' ≠ 🧤') : ''), 'lift');
+  const events = spend(g, 1);
+  return { ok: true, cost: 1, caught: !!caught, trait: caught ? null : p.trait, word: caught ? null : spiritWord(p), ini: p.ini, glove, match: !caught && glove && match, left: liftLeft(g), events };
+}
+
 /* ---------- accusation ---------- */
 function accuse(g, i, proofId) {
   if (g.over) return { ok: false, error: 'over' };
@@ -433,10 +449,10 @@ function accuse(g, i, proofId) {
       x.role === 'L' ? '🚶 Out at 10:28. Too late' :
       '☎️ On the phone' + (g.F && g.F.idx === x.idx ? ' · framed' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
-    stats: { safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
+    stats: { lift: Object.values(g.lift || {}).filter(x => !x.caught).length, safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
 function clock(g) { return fmt(START + g.t * 15); }
 
-const API = { safe, safeCombo, safePick, SAFE_N, SAFE_BONUS, polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
+const API = { lift, liftLeft, LIFT_MAX, safe, safeCombo, safePick, SAFE_N, SAFE_BONUS, polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Noir = API;
 })(typeof window !== 'undefined' ? window : globalThis);
