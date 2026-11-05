@@ -212,6 +212,13 @@ STYLES.lift = { bpm: 100, div: 2, swing: 0.16, ch: [[45, 60, 64, 67], [45, 60, 6
     if (i === 2 || i === 6) { noiseHit(t, WN, 'bandpass', 2300, 3, 0.05, 0.03); noiseHit(t + 0.004, PN, 'bandpass', 900, 2, 0.03, 0.04); }
     if (i % 2 === 1) noiseHit(t, WN, 'highpass', 8000, 0.7, 0.008, 0.025);
     if ((i === 3 || i === 7) && R() < 0.55) vibe(t, pk(s.sc) - 12, 0.022); if (i === 0 && bar === 0) pad(t, ch.slice(1).map(m => m - 12), 0.016, 4.2, 'string', 650); } };
+// the darkroom: instrumental only. Slow red-light vamp — muted bass, soft drip-tick hats, a hollow organ pad, a watery vibe that leaves room for the tray
+STYLES.darkroom = { bpm: 66, div: 2, swing: 0.08, ch: [[36, 48, 55, 58], [36, 48, 53, 58], [34, 46, 53, 57], [35, 47, 54, 58]], sc: [58, 60, 63, 65, 67, 70],
+  play(t, bar, i, s, ch) { if (i === 0 || i === 4) bass(t, ch[0] + (i === 4 ? 7 : 0), 0.28, 0.55);
+    if (i === 0 && bar % 2 === 0) pad(t, ch.slice(1).map(m => m - 12), 0.022, 5.2, 'organ', 900);
+    if (i === 2 || i === 6) noiseHit(t, WN, 'bandpass', 4200, 4, 0.012, 0.05);
+    if (i === 3 && R() < 0.45) vibe(t, pk(s.sc) - 12, 0.02);
+    if (bar === 3 && i === 5 && R() < 0.5) bell(t, pk(s.sc), 0.025); } };
 function setScene(id) { style = STYLES[id] ? id : 'title';
   if (!ctx) return; const w = WEATHER[style] || WEATHER.title, n = now();
   [rain.hg, rain.bg, rain.gg, rain.rg, rain.wg].forEach((g, i) => g && g.gain.setTargetAtTime(w[i], n, 1.5)); rain.drops = w[5]; }
@@ -242,7 +249,7 @@ function thunder(big) {
   chain(s, f, g, sfxG); s.start(t, Math.random()); s.stop(t + 5);
 }
 /* ---------- sfx ---------- */
-let lastTick = 0, lastBrush = 0, ther = null, polyN = null;
+let lastTick = 0, lastBrush = 0, lastRock = 0, ther = null, polyN = null;
 const S = {
   type() { if (!ctx || !on) return; const n = now(); if (n - lastTick < 0.05) return; lastTick = n; noiseHit(n, WN, 'bandpass', 2600 + Math.random() * 900, 3, 0.05, 0.025, sfxG); },
   tap() { if (!ctx || !on) return; const t = now(); noiseHit(t, WN, 'bandpass', 1800, 6, 0.08, 0.03, sfxG); const g = ctx.createGain(); env(g, t, 0.002, 0.05, 0.02, 0.04); chain(osc('sine', 660, t, t + 0.2), g, sfxG); },
@@ -360,6 +367,16 @@ const S = {
     [52, 59, 64, 67, 71].forEach((m, i) => { const g = ctx.createGain(); env(g, t + 0.32, 0.01, 0.06, 0.5, 0.8); chain(osc('brass', mtof(m), t + 0.32, t + 3, i * 5 - 10), biq('lowpass', 2800, 1), g, sfxG); }); },
   escape() { if (!ctx || !on) return; const t = now(); [0, 0.25].forEach((d, k) => { const g = ctx.createGain(), o = osc('reed', mtof(k ? 64 : 69), t + d, t + d + 2); o.frequency.exponentialRampToValueAtTime(mtof(k ? 52 : 57), t + d + 1.4); env(g, t + d, 0.02, 0.07, 0.8, 0.5); chain(o, biq('lowpass', 1800), g, sfxG); });
     [0, 0.5, 1].forEach(d => { const g = ctx.createGain(); env(g, t + 0.6 + d, 0.002, 0.04, 0.05, 0.6); chain(osc('sine', 1568, t + 0.6 + d, t + 2.8 + d), g, sfxG); }); },
+  // the darkroom — soft splash, tray rock, bloom focus ping  /* DARKROOM_20261105 */
+  splash() { if (!ctx || !on) return; const t = now(); noiseHit(t, PN, 'lowpass', 700, 0.8, 0.22, 0.35, sfxG, 0.6); noiseHit(t + 0.05, WN, 'bandpass', 1800, 2, 0.04, 0.2, sfxG);
+    const g = ctx.createGain(), o = osc('sine', 90, t, t + 0.5); o.frequency.exponentialRampToValueAtTime(48, t + 0.28); env(g, t, 0.01, 0.08, 0.15, 0.2); chain(o, g, sfxG); },
+  rock(v) { if (!ctx || !on) return; const n = now(); if (n - lastRock < 0.07) return; lastRock = n; const k = Math.min(1, Math.abs(v || 0.4));
+    noiseHit(n, PN, 'bandpass', 500 + k * 900, 1.2, 0.03 + k * 0.06, 0.08, sfxG, 0.7); noiseHit(n, WN, 'highpass', 5000, 0.8, 0.01 + k * 0.02, 0.03, sfxG); },
+  bloom(i) { if (!ctx || !on) return; const t = now(), m = [64, 67, 71, 74, 79][(i || 0) % 5];
+    [0, 0.06].forEach((d, k) => { const g = ctx.createGain(); env(g, t + d, 0.01, 0.045 / (k + 1), 0.2, 0.9); chain(osc('sine', mtof(m + k * 12), t + d, t + d + 2.5), g, sfxG); });
+    noiseHit(t, WN, 'bandpass', 2400, 3, 0.05, 0.2, sfxG); },
+  darkDone() { if (!ctx || !on) return; const t = now(); [55, 62, 67, 74].forEach((m, i) => { const g = ctx.createGain(); env(g, t + i * 0.07, 0.02, 0.05, 0.5, 1.1); chain(osc('reed', mtof(m), t + i * 0.07, t + 3), biq('lowpass', 1800), g, sfxG); });
+    noiseHit(t + 0.1, PN, 'lowpass', 800, 0.7, 0.18, 0.4, sfxG); },
   thunder, setTension,
 };
 root.NoirSnd = { start, setOn, setScene, isOn: () => on, started: () => started, ctx: () => ctx, sfx: S, style: () => style };

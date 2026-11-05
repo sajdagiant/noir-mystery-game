@@ -181,9 +181,9 @@ function renderScene() {
   const shut = G.leadExit ? '' : `<div class="room shut" style="left:${SLOTS[5][0]}%;top:${SLOTS[5][1]}%" aria-hidden="true"><span class="win"><span class="ic">🔒</span></span><b>${esc(st.exit.name)}</b></div>`;
   $('#v-scene').innerHTML = `<div class="map m-${st.id}"><div class="mapsky">${A.skyline(st.id + 's', st.accent, st.sky, st.id, 400, 150)}</div><div class="mapsign">${MAPSIGN[st.id] || ''}</div><div class="streetlamp" aria-hidden="true"></div>
     <div class="facade">${rooms}${shut}</div><div class="rainglass" aria-hidden="true"></div><div class="smoke" aria-hidden="true"><i></i><i></i><i></i></div></div>
-    <div class="tools">${seanceBtn('seBtn')}${safeBtn('sfBtn')}${hintBtn('hintBtn')}</div>`;
+    <div class="tools">${seanceBtn('seBtn')}${darkroomBtn('dkBtn')}${safeBtn('sfBtn')}${hintBtn('hintBtn')}</div>`;
   $$('#v-scene .loc').forEach(b => b.onclick = () => doSearch(b.dataset.id));
-  $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance; $('#sfBtn').onclick = doSafe;
+  $('#hintBtn').onclick = doHint; $('#seBtn').onclick = doSeance; $('#dkBtn').onclick = doDarkroom; $('#sfBtn').onclick = doSafe;
 }
 function renderSuspects() {
   $('#v-suspects').innerHTML = `<div class="cards">${G.people.map(p => { const [c, tx] = chipFor(p.idx), n = G.nerve[p.idx]; return `<button class="sc ${G.met[p.idx] ? '' : 'unmet'}" data-i="${p.idx}"><div class="pt">${A.portrait(p.art, { accent: G.st.accent, mood: G.status[p.idx] === 'collapsed' ? 'caught' : n >= 2 ? 'nervous' : 'neutral', nerve: n, label: p.name })}${G.met[p.idx] ? '' : '<span class="new">👋</span>'}</div><div class="inf"><b>${esc(p.name)}</b><span class="chip ${c}">${tx}</span></div></button>`; }).join('')}</div>`;
@@ -192,7 +192,7 @@ function renderSuspects() {
 const KIND_IC = { confession: '🎭', call: '☎️', alone: '🚶', claim: '🏠' };
 function renderBoard() {
   const clues = E.clueList(G);
-  let h = safeNote() + (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>👃 ?</small></div></div>` : '')
+  let h = safeNote() + darkNote() + (G.seanceWord ? `<div class="ghostnote"><span>👻</span><div><b>THE SPIRIT SPELLED</b><em>${esc(G.seanceWord)}</em><small>👃 ?</small></div></div>` : '')
     + `<div class="cork" id="cork"><div class="pinhint">${armed ? '👇 Now the lie' : '🧵 Drag a clue onto a lie'}</div><div class="pins">${clues.map((c, i) => `<button class="pin ${c.kind === 'testimony' ? 't' : ''} ${armed === c.id ? 'armed' : ''}" data-c="${c.id}" style="--r:${(i % 3 - 1) * 1.6}deg"><span class="ic">${c.icon}</span><b>${esc(c.title)}</b></button>`).join('')}</div>${armed ? `<div class="pintx">${esc(G.clues[armed].text)}</div>` : ''}</div>`;
   G.people.forEach(p => {
     const [c, tx] = chipFor(p.idx), sts = E.statementsFor(G, p.idx);
@@ -203,7 +203,7 @@ function renderBoard() {
     if (G.notes[p.idx].length) h += `<div class="dos chips">${G.notes[p.idx].map(n => `<span>${esc(n.text)}</span>`).join('')}</div>`;
     h += `</div></div>`;
   });
-  h += `<div class="tools">${seanceBtn('seBtn2')}${safeBtn('sfBtn2')}${hintBtn('hintBtn2')}</div>`;
+  h += `<div class="tools">${seanceBtn('seBtn2')}${darkroomBtn('dkBtn2')}${safeBtn('sfBtn2')}${hintBtn('hintBtn2')}</div>`;
   $('#v-board').innerHTML = h;
   $$('#v-board .pin').forEach(b => b.onclick = () => { if (b._dragged) return; if (armed !== b.dataset.c) { S.sfx.link(); hap('link'); } else S.sfx.tap(); armed = armed === b.dataset.c ? null : b.dataset.c; renderBoard(); });
   $$('#v-board .fh').forEach(b => b.onclick = () => openInterview(+b.dataset.i));
@@ -213,7 +213,7 @@ function renderBoard() {
     if (s.broken) return toast('LIE ✓');
     const c = armed; armed = null; S.sfx.twang(); hap('link'); openInterview(s.who, c);
   });
-  $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance; $('#sfBtn2').onclick = doSafe;
+  $('#hintBtn2').onclick = doHint; $('#seBtn2').onclick = doSeance; $('#dkBtn2').onclick = doDarkroom; $('#sfBtn2').onclick = doSafe;
   stringDrag();
 }
 /* ---------- red string: press a pinned clue and drag the string onto the statement it breaks ---------- */
@@ -585,6 +585,107 @@ async function finish(idx, proof) {
   showResult(res); busy = false;
 }
 
+
+/* ---------- the darkroom: rock a chemical tray under a red safelight; one frame blooms with the killer's scent. DARKROOM_20261105 ---------- */
+function darkroomBtn(id) {
+  if (G.darkroom) return `<button class="tool dkbtn used" id="${id}"><span>🎞️</span><b>${esc(G.darkroom.word)}</b><small>👃 ?</small></button>`;
+  return `<button class="tool dkbtn" id="${id}" aria-label="Develop the film"><span>🎞️</span><b>Darkroom</b><small>⏱${E.DARKROOM_COST} · rock</small></button>`;
+}
+function darkNote() {
+  if (!G.darkroom) return '';
+  return `<div class="darknote"><span>🎞️</span><div><b>FRAME 8</b><em>${esc(G.darkroom.word)}</em><small>👃 ${esc(G.darkroom.ini || '?')}</small></div></div>`;
+}
+async function doDarkroom() {
+  if (busy || G.over) return;
+  if (G.darkroom) { S.sfx.tap(); return toast('🎞️ ' + G.darkroom.word); }
+  const ok = await modal(`<div class="dark darkpre"><div class="crystal">🎞️</div><h3>THE DARKROOM</h3><p>Rock the tray. Watch it bloom.</p><div class="chips c"><span>⏱ −${E.DARKROOM_COST}</span><span>🔴 safelight</span><span>〰️ rock</span></div><button class="btn" data-r="go">Kill the lights</button><button class="btn alt" data-r="no">Leave it</button></div>`);
+  if (ok !== 'go') return;
+  busy = true; const r = E.darkroom(G); if (!r.ok) { busy = false; return; }
+  boardNew++; updateHud(true);
+  if (S.setScene) S.setScene('darkroom');
+  await runDarkroom(r);
+  if (S.setScene) S.setScene(G.st.id);
+  renderAll();
+  await afterAction(r.events); busy = false;
+}
+function runDarkroom(r) {
+  return new Promise(done => {
+    const ov = document.createElement('div'); ov.className = 'darkroom'; ov.id = 'darkroom';
+    const decoys = [
+      { ic: '🩸', t: 'SCENE', s: 'desk' },
+      { ic: '🚪', t: 'HALL', s: 'empty' },
+      { ic: '🥃', t: 'GLASS', s: 'print' },
+    ];
+    const tellI = 2; // third frame is the tell
+    const frames = [decoys[0], decoys[1], { ic: '👃', t: r.ini || r.word, s: r.word, tell: 1 }, decoys[2]];
+    ov.innerHTML = `<div class="dkhead"><small>DARKROOM · ${esc(G.st.name)}</small><b>DEVELOP THE ROLL</b></div>
+      <div class="dktray" id="dktray" aria-label="Rock the chemical tray">
+        <div class="dkchem"><div class="dkstrip">${frames.map((f, i) => `<div class="dkframe ${f.tell ? 'tell' : ''}" data-i="${i}" style="--f:0"><div class="fog"></div><div class="pic"><span>${f.ic}</span><b>${esc(f.t)}</b><em>${esc(f.s)}</em></div></div>`).join('')}</div></div>
+      </div>
+      <div class="dkmeter" aria-hidden="true"><i id="dkmet"></i></div>
+      <div class="dkhint" id="dkhint">〰️ rock the tray</div>`;
+    document.body.appendChild(ov); S.sfx.splash(); hap('heavy');
+    const tray = $('#dktray'), hint = $('#dkhint'), met = $('#dkmet');
+    const auto = FAST || /[?&]autodark\b/.test(location.search);
+    let prog = 0, rockA = 0, lastX = null, lastDir = 0, bloomed = 0, finished = false, raf = 0, lastT = performance.now(), lastHap = 0, grip = false;
+    const setRock = a => { rockA = Math.max(-14, Math.min(14, a)); ov.style.setProperty('--rock', rockA.toFixed(2) + 'deg'); };
+    const bloomOne = () => {
+      if (bloomed >= frames.length) return;
+      const el = ov.querySelector(`.dkframe[data-i="${bloomed}"]`);
+      if (!el) return;
+      el.style.setProperty('--f', '1'); el.classList.add('bloom');
+      S.sfx.bloom(bloomed); hap('lift');
+      bloomed++;
+      if (bloomed >= frames.length) setTimeout(finish, FAST ? 80 : 700);
+    };
+    const addProg = (amt) => {
+      if (finished) return;
+      const before = prog; prog = Math.min(1, prog + amt); met.style.width = (prog * 100).toFixed(1) + '%';
+      ov.style.setProperty('--glow', (0.35 + prog * 0.55).toFixed(2));
+      const need = [0.22, 0.44, 0.66, 0.88];
+      while (bloomed < need.length && prog >= need[bloomed]) bloomOne();
+      if (prog - before > 0.01 && performance.now() - lastHap > 90) { lastHap = performance.now(); hap('dust'); }
+    };
+    const down = e => { e.preventDefault(); grip = true; ov.classList.add('grip'); lastX = e.clientX; hint.classList.add('gone'); try { tray.setPointerCapture(e.pointerId); } catch (_) {} hap('tap'); };
+    const move = e => {
+      if (!grip || finished) return; e.preventDefault();
+      const dx = e.clientX - lastX; lastX = e.clientX;
+      setRock(rockA + dx * 0.12);
+      const dir = dx === 0 ? lastDir : (dx > 0 ? 1 : -1);
+      if (dir && dir !== lastDir) { addProg(auto ? 0.2 : 0.045 + Math.min(0.04, Math.abs(dx) / 400)); S.sfx.rock(Math.abs(dx) / 80); }
+      else if (Math.abs(dx) > 2) { addProg(auto ? 0.08 : 0.012); S.sfx.rock(Math.abs(dx) / 120); }
+      lastDir = dir;
+    };
+    const up = () => { grip = false; ov.classList.remove('grip'); };
+    tray.addEventListener('pointerdown', down); tray.addEventListener('pointermove', move);
+    ['pointerup', 'pointercancel'].forEach(k => tray.addEventListener(k, up));
+    // optional device tilt
+    const onOrient = e => {
+      if (finished || grip) return;
+      const b = e.beta || 0, g = e.gamma || 0;
+      setRock(g * 0.35);
+      if (Math.abs(g) > 6 || Math.abs(b - 45) > 12) { addProg(0.008); S.sfx.rock(Math.abs(g) / 40); }
+    };
+    try { if (window.DeviceOrientationEvent) window.addEventListener('deviceorientation', onOrient); } catch (_) {}
+    const step = now => {
+      const dt = Math.min(50, now - lastT) / 1000; lastT = now;
+      if (!grip && !finished) setRock(rockA * (1 - Math.min(1, dt * 3)));
+      if (auto && !finished) addProg(dt * (FAST ? 3.5 : 0.55));
+      if (!finished) raf = requestAnimationFrame(step);
+    };
+    const finish = () => {
+      if (finished) return; finished = true; cancelAnimationFrame(raf);
+      try { window.removeEventListener('deviceorientation', onOrient); } catch (_) {}
+      S.sfx.darkDone(); hap('heavy');
+      const card = document.createElement('div'); card.className = 'dkcard';
+      card.innerHTML = `<small>FRAME 8 · DEVELOPED</small><div class="dkw">${esc(r.word)}</div><p class="sm">👃 ${esc(r.ini || '')} · who smells of it?</p><button class="btn" id="dkDone">📌 Pin it</button>`;
+      ov.appendChild(card); requestAnimationFrame(() => card.classList.add('on'));
+      $('#dkDone').onclick = () => { S.sfx.tap(); ov.classList.add('bye'); setTimeout(() => { ov.remove(); done(); }, FAST ? 0 : 420); };
+    };
+    raf = requestAnimationFrame(step);
+    if (auto) setTimeout(() => { while (bloomed < frames.length) bloomOne(); }, FAST ? 60 : 200);
+  });
+}
 
 /* ---------- séance: the victim's ghost drags a planchette across a spirit board and spells one true word ---------- */
 const isHalloween = () => { const d = new Date(); return (d.getMonth() === 9 && d.getDate() >= 30) || (d.getMonth() === 10 && d.getDate() === 1) || /[?&]halloween\b/.test(location.search); };
@@ -1191,6 +1292,6 @@ function makeCard(res) {
   });
 }
 
-window.__noir = { get G() { return G; }, E, newGame, showClue: (c, t) => showClue(c, t), setView, safe: doSafe, lift: doLift, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
+window.__noir = { get G() { return G; }, E, newGame, showClue: (c, t) => showClue(c, t), setView, safe: doSafe, lift: doLift, darkroom: doDarkroom, chase: k => runChase(k || G.people[G.K.idx]), get busy() { return busy; }, Hap, isIOS };
 showTitle();
 })();

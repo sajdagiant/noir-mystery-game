@@ -408,6 +408,19 @@ function lift(g, i, caught) {
   return { ok: true, cost: 1, caught: !!caught, trait: caught ? null : p.trait, word: caught ? null : spiritWord(p), ini: p.ini, glove, match: !caught && glove && match, left: liftLeft(g), events };
 }
 
+/* ---------- the darkroom: once per case, rock a chemical tray under a red safelight to develop the crime-scene roll. One frame blooms with the killer's scent. ---------- */
+const DARKROOM_COST = 1;
+function darkroom(g) {
+  if (locked(g)) return { ok: false, error: 'dawn' };
+  if (g.darkroom) return { ok: false, error: 'used' };
+  const word = spiritWord(g.K), trait = g.K.trait, ini = g.K.ini;
+  const text = fill('Frame 8 under the red light: {w}.', { w: word.toLowerCase(), v: g.V.short });
+  g.darkroom = { word, trait, ini, text };
+  addNote(g, g.K.idx, '🎞️ Frame 8: ' + word, 'darkroom');
+  const events = spend(g, DARKROOM_COST);
+  return { ok: true, cost: DARKROOM_COST, word, trait, ini, text, events };
+}
+
 /* ---------- accusation ---------- */
 function accuse(g, i, proofId) {
   if (g.over) return { ok: false, error: 'over' };
@@ -420,7 +433,7 @@ function accuse(g, i, proofId) {
   const left = g.max - g.t;
   let score = 0;
   if (win) {
-    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0) - Object.keys(g.poly || {}).length * 40
+    score = 450 + (proof === 'strong' ? 250 : proof === 'fair' ? 110 : 0) + left * 25 + g.cracks * 60 - g.bluffs * 50 - g.hints * 75 - (g.seanced ? 100 : 0) - (g.darkroom ? 40 : 0) - Object.keys(g.poly || {}).length * 40
       + (g.safe && g.safe.how === 'crack' ? SAFE_BONUS : 0) + (g.confSeen && g.confBroken ? 100 : 0) + (g.variant === 'frame' && g.planted ? 60 : 0) + (g.variant === 'staged' && g.stmts['st_call_' + K.idx] && g.stmts['st_call_' + K.idx].broken ? 60 : 0);
     score = Math.max(100, score);
   } else score = clueList(g).length * 20;
@@ -449,10 +462,10 @@ function accuse(g, i, proofId) {
       x.role === 'L' ? '🚶 Out at 10:28. Too late' :
       '☎️ On the phone' + (g.F && g.F.idx === x.idx ? ' · framed' : '') }));
   return { ok: true, win, proof, score, rank, left, lines, recap, killer: K.idx, accused: p.idx, epi: st.epi, variant: g.variant,
-    stats: { lift: Object.values(g.lift || {}).filter(x => !x.caught).length, safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
+    stats: { lift: Object.values(g.lift || {}).filter(x => !x.caught).length, safe: g.safe ? g.safe.how : null, poly: Object.keys(g.poly || {}).length, seance: !!g.seanced, darkroom: !!g.darkroom, cracks: g.cracks, bluffs: g.bluffs, hints: g.hints, left, confession: g.confSeen, sawThrough: g.confSeen && g.confBroken, body: g.bodyDone, variant: g.variant } };
 }
 function clock(g) { return fmt(START + g.t * 15); }
 
-const API = { lift, liftLeft, LIFT_MAX, safe, safeCombo, safePick, SAFE_N, SAFE_BONUS, polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
+const API = { lift, liftLeft, LIFT_MAX, safe, safeCombo, safePick, SAFE_N, SAFE_BONUS, polygraph, polyLeft, POLY_MAX, seance, spiritWord, SEANCE_COST, darkroom, DARKROOM_COST, newCase, search, ask, present, meet, hint, accuse, locations, statementsFor, clueList, topics, clock, fmt, MAXT, mulberry };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Noir = API;
 })(typeof window !== 'undefined' ? window : globalThis);
